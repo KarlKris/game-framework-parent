@@ -9,6 +9,11 @@
     <description>游戏服务器框架</description>
     <name>game-framework-parent</name>
 
+    <modules>
+        <module>network</module>
+    </modules>
+
+
     <properties>
         <java.version>1.8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
