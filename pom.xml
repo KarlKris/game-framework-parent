@@ -11,6 +11,8 @@
 
     <modules>
         <module>network</module>
+        <module>common</module>
+        <module>ioc</module>
     </modules>
 
 
@@ -20,6 +22,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <lombok.version>1.18.22</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <game.version>1.0</game.version>
     </properties>
 
     <dependencies>
@@ -30,12 +33,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -45,6 +42,19 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
+
+            <!-- 自己写的模块 -->
+            <dependency>
+                <groupId>com.li</groupId>
+                <artifactId>common</artifactId>
+                <version>${game.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.li</groupId>
+                <artifactId>ioc</artifactId>
+                <version>${game.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 </project>
