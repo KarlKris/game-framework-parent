@@ -2,6 +2,7 @@ package com.li.ioc.core;
 
 import com.li.common.util.StringUtil;
 import com.li.ioc.anno.Component;
+import com.li.ioc.loader.BeanDefinition;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,18 +18,16 @@ public abstract class AbstractBeanFactory implements BeanFactory {
     /** 二级缓存（用于未完全注入field的object） **/
     private final Map<String, Object> earlySingletonObjects = new HashMap<>();
 
-
     @Override
-    @SuppressWarnings("unchecked")
-    public <T> T getBean(Class<T> clz) {
-        // todo clz转beanName
-        String beanName = generateBeanName(clz);
+    public <T> T getBean(String beanName, Class<T> requiredType) {
         Object singleton = getSingleton(beanName);
         if (singleton == null) {
-            singleton = getSingleton(beanName, () -> createBean(clz));
+            singleton = getSingleton(beanName
+                    , () -> createBean(beanName, requiredType));
         }
         return (T) singleton;
     }
+
 
     @Override
     public void destroy() {
@@ -37,6 +36,13 @@ public abstract class AbstractBeanFactory implements BeanFactory {
 
     // ------------------------------------------------------------------------------------
 
+
+    /**
+     * 根据beanName获取BeanDefinition
+     * @param beanName beanName
+     * @return BeanDefinition
+     */
+    protected abstract BeanDefinition getBeanDefinition(String beanName);
 
     // ------------------------------------------------------------------------------------
 
@@ -67,7 +73,8 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         return singletonObject;
     }
 
-    private Object createBean(Class<?> clz) {
+    private Object createBean(String beanName, Class<?> clz) {
+        BeanDefinition beanDefinition = getBeanDefinition(beanName);
         return null;
     }
 

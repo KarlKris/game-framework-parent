@@ -13,6 +13,7 @@
         <module>network</module>
         <module>common</module>
         <module>ioc</module>
+        <module>hotswap-agent</module>
     </modules>
 
 
@@ -20,6 +21,7 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <jdk.tools.version>${java.version}</jdk.tools.version>
         <lombok.version>1.18.22</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <game.version>1.0</game.version>
@@ -42,6 +44,23 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
+            <dependency>
+                <groupId>jdk.tools</groupId>
+                <artifactId>jdk.tools</artifactId>
+                <version>${jdk.tools.version}</version>
+                <scope>system</scope>
+                <systemPath>${java.home}/../lib/tools.jar</systemPath>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>3.21.0-GA</version>
+            </dependency>
 
             <!-- 自己写的模块 -->
             <dependency>
@@ -52,6 +71,11 @@
             <dependency>
                 <groupId>com.li</groupId>
                 <artifactId>ioc</artifactId>
+                <version>${game.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.li</groupId>
+                <artifactId>hotswap-agent</artifactId>
                 <version>${game.version}</version>
             </dependency>
 

@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 /**
  * 解析注入
  */
-@Target({ElementType.TYPE})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Value {
