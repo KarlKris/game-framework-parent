@@ -13,7 +13,7 @@
         <module>network</module>
         <module>common</module>
         <module>ioc</module>
-        <module>hotswap-agent</module>
+<!--        <module>hotswap-agent</module>-->
     </modules>
 
 
@@ -25,6 +25,7 @@
         <lombok.version>1.18.22</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <game.version>1.0</game.version>
+        <log4j2.version>2.17.2</log4j2.version>
     </properties>
 
     <dependencies>
@@ -50,6 +51,13 @@
                 <version>${jdk.tools.version}</version>
                 <scope>system</scope>
                 <systemPath>${java.home}/../lib/tools.jar</systemPath>
+            </dependency>
+            <!--test-->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>

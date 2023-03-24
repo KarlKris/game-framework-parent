@@ -1,6 +1,5 @@
 package com.li.common.hotswap.recompile;
 
-import com.li.common.util.ClassUtil;
 import com.li.common.util.StringUtil;
 import com.sun.org.slf4j.internal.Logger;
 import com.sun.org.slf4j.internal.LoggerFactory;
@@ -11,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 
 /**
@@ -57,7 +57,7 @@ public class RecompileHotSwap {
 
         // 从class文件中获取CtClass
         CtClass newCtClass;
-        try (InputStream classInputStream = ClassUtil.getClassInputStream(oldClass)) {
+        try (InputStream classInputStream = getClassInputStream(oldClass)) {
             newCtClass = pool.makeClass(classInputStream);
         }
 
@@ -123,5 +123,16 @@ public class RecompileHotSwap {
         }
         LOGGER.error("class dumpd: {}", to.getAbsolutePath());
         FileUtils.writeByteArrayToFile(to, targetBytes);
+    }
+
+    private static InputStream getClassInputStream(Class<?> clazz) throws Exception {
+        String classLocation = clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
+
+        if (classLocation.endsWith(".jar")) {
+            throw new IOException("cannot recompile class from jar: " + clazz);
+        } else {
+            String clazzName = clazz.getName().replace('.', '/') + ".class";
+            return Files.newInputStream(new File(classLocation, clazzName).toPath());
+        }
     }
 }

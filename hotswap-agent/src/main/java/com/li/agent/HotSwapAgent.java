@@ -16,7 +16,7 @@ public class HotSwapAgent {
         return instrumentation;
     }
 
-    public void setInstrumentation(Instrumentation ins) {
+    public static void setInstrumentation(Instrumentation ins) {
         HotSwapAgent.instrumentation = ins;
     }
 
