@@ -11,6 +11,9 @@
     <packaging>pom</packaging>
     <description>游戏框架之基础包</description>
 
+    <properties>
+        <hutool.version>5.8.15</hutool.version>
+    </properties>
 
     <dependencies>
         <!--test-->
@@ -24,16 +27,19 @@
             <artifactId>jdk.tools</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.li</groupId>
             <artifactId>hotswap-agent</artifactId>
         </dependency>
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
+        </dependency>
+
+        <!--- 引入Hutool工具包 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-core</artifactId>
+            <version>${hutool.version}</version>
         </dependency>
 
     </dependencies>

@@ -1,16 +1,16 @@
 package com.li.common.hotswap.agent;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import com.li.agent.HotSwapAgent;
 import com.li.common.util.StringUtil;
 import com.li.agent.HotSwapAgentLocation;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
 import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -120,7 +120,7 @@ public class HotSwap {
                                 if (je != null) {
                                     LOGGER.error("class redefined:\t{}", clazz);
                                     try (InputStream stream = jf.getInputStream(je)) {
-                                        byte[] data = IOUtils.toByteArray(stream);
+                                        byte[] data = IoUtil.readBytes(stream);
                                         classDefList.add(new ClassDefinition(cls, data));
                                     }
                                 } else {
@@ -134,7 +134,7 @@ public class HotSwap {
                             String clazz = cls.getName().replace('.', '/') + ".class";
                             file = new File(classLocation, clazz);
                             LOGGER.error("class redefined:{}", file.getAbsolutePath());
-                            byte[] data = FileUtils.readFileToByteArray(file);
+                            byte[] data =FileUtil.readBytes(file);
                             classDefList.add(new ClassDefinition(cls, data));
                         }
                     }

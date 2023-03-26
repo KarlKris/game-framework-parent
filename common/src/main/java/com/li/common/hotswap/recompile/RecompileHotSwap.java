@@ -1,10 +1,10 @@
 package com.li.common.hotswap.recompile;
 
+import cn.hutool.core.io.FileUtil;
 import com.li.common.util.StringUtil;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
 import javassist.*;
-import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -117,12 +117,9 @@ public class RecompileHotSwap {
                 new String[]{basePath, "recompile-output", className + "-" + LocalDateTime.now() + ".class"},
                 File.separator);
         File to = new File(finalPath);
-        File parentFile = to.getCanonicalFile().getParentFile();
-        if (!parentFile.exists()) {
-            FileUtils.forceMkdir(parentFile);
-        }
+        FileUtil.mkParentDirs(to);
         LOGGER.error("class dumpd: {}", to.getAbsolutePath());
-        FileUtils.writeByteArrayToFile(to, targetBytes);
+        FileUtil.writeBytes(targetBytes, to);
     }
 
     private static InputStream getClassInputStream(Class<?> clazz) throws Exception {

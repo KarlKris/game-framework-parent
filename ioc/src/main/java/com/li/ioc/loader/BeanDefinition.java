@@ -6,7 +6,19 @@ package com.li.ioc.loader;
  */
 public class BeanDefinition {
 
+    /** beanName **/
+    private String beanName;
     /** 类型 **/
-    private Class<?> clz;
+    private Class<?> beanClz;
+
+
+    public String getBeanName() {
+        return beanName;
+    }
+
+    public Class<?> getBeanClz() {
+        return beanClz;
+    }
+
 
 }
