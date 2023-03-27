@@ -1,5 +1,8 @@
 package com.li.common.hotswap.recompile;
 
+/**
+ * 用于重新加载某个指定类,从而实现将修改后的class加载进入jvm
+ */
 public class RecompileClassLoader extends ClassLoader {
 
     private final String className;

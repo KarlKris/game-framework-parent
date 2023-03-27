@@ -1,26 +1,25 @@
 package com.li.common.hotswap;
 
 /**
- * 热更方法main
+ * 热更方法circle0
  */
 public class HotSwapMain {
 
-    public int getInt() {
-        return 1;
-    }
-
-    public static void main(String[] args) {
-        HotSwapMain hotSwapMain = new HotSwapMain();
-        while (hotSwapMain.getInt() == 1) {
+    public void circle() {
+        System.out.println("开始circle循环");
+        while (getInt() == 1) {
             try {
-                Thread.sleep(5000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-        System.out.println("跳出main循环");
+        System.out.println("跳出circle循环");
     }
 
+    public int getInt() {
+        return 1;
+    }
 
 
 }

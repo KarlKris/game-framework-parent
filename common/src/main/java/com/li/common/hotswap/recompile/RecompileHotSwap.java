@@ -12,18 +12,24 @@ import java.io.InputStream;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * 新版热更
  *
+ * <a href="https://yeas.fun/archives/java-hotswap-compile"/a>
+ *
  * <pre>
  * 原理：
  * 1.动态生成子类，替换原有父类实现
- * 2.采用spring进行绑定，而非自定义实现
  *
  * 重点：
  * 1.因为采取继承的方式，则类必须要有构造函数！
  * 2.方法内的final方法无法覆写，则无法热更，动态生成的子类会忽略final方法
+ * 3.需要借助对象注册机制,简单理解就是对象的映射关系,进行热更时,只要把当前注册的对象替换为新对象，
+ *   因为新对象是原对象的子类，可覆写方法，从而实现逻辑的替换
+ *   同时因为是借助对象注册机制,可以轻松实现动态新增类
+ *
  * </pre>
  *
  */
@@ -113,8 +119,13 @@ public class RecompileHotSwap {
     private static void dump(byte[] targetBytes, String className) throws IOException {
         // class dump到日志中
         String basePath = new File("").getAbsolutePath();
+
+        LocalDateTime localDateTime = LocalDateTime.now();
+        DateTimeFormatter pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm-ss");
+        String time = localDateTime.format(pattern).replace(" ", "T");
+
         String finalPath = StringUtil.join(
-                new String[]{basePath, "recompile-output", className + "-" + LocalDateTime.now() + ".class"},
+                new String[]{basePath, "recompile-output", className + "-" + time + ".class"},
                 File.separator);
         File to = new File(finalPath);
         FileUtil.mkParentDirs(to);
