@@ -1,19 +1,22 @@
 package com.li.ioc.core;
 
+import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.core.util.ArrayUtil;
 import com.li.common.util.StringUtil;
 import com.li.ioc.anno.Autowired;
 import com.li.ioc.anno.Component;
+import com.li.ioc.anno.Value;
 import com.li.ioc.exception.BeanCreateException;
 import com.li.ioc.loader.BeanDefinition;
+import com.li.ioc.processor.InstantiationAwareBeanPostProcessor;
 
+import javax.annotation.Resource;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author li-yuanwen
@@ -29,6 +32,29 @@ public abstract class AbstractBeanFactory implements BeanFactory {
     /** 正在创建beanName **/
     private final Set<String> singletonsCurrentlyInCreation = new ConcurrentHashSet<>(64);
 
+    /** bean实例化后置处理器 **/
+    private final List<InstantiationAwareBeanPostProcessor> beanPostProcessors = new ArrayList<>();
+
+    public void addBeanPostProcessor(InstantiationAwareBeanPostProcessor beanPostProcessor) {
+        if (beanPostProcessor == null) {
+            return;
+        }
+        // 先移除旧的
+        beanPostProcessors.remove(beanPostProcessor);
+        // 再添加新的
+        beanPostProcessors.add(beanPostProcessor);
+    }
+
+    public void addBeanPostProcessors(Collection<? extends InstantiationAwareBeanPostProcessor> beanPostProcessors) {
+        if (beanPostProcessors == null || beanPostProcessors.isEmpty()) {
+            return;
+        }
+        // 先移除旧的
+        this.beanPostProcessors.removeAll(beanPostProcessors);
+        // 再添加新的
+        this.beanPostProcessors.addAll(beanPostProcessors);
+    }
+
     @Override
     public <T> T getBean(String beanName, Class<T> requiredType) {
         Object singleton = getSingleton(beanName);
@@ -39,6 +65,10 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         return (T) singleton;
     }
 
+    @Override
+    public <T> T getBean(Class<T> clz) {
+        return getBean(clz, true);
+    }
 
     @Override
     public void destroy() {
@@ -54,6 +84,15 @@ public abstract class AbstractBeanFactory implements BeanFactory {
      * @return BeanDefinition
      */
     protected abstract BeanDefinition getBeanDefinition(String beanName);
+
+    /**
+     * 根据clz获取bean单例对象 or 在允许为null的情况下返回null
+     * @param clz clz
+     * @param required bean是否必须存在
+     * @return bean or null
+     * @param <T> bean Class
+     */
+    protected abstract <T> T getBean(Class<T> clz, boolean required);
 
     // ------------------------------------------------------------------------------------
 
@@ -123,11 +162,13 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         if (isSingletonCurrentlyInCreation(beanName)) {
             addEarlySingletonObject(beanName, instance);
         }
-        //todo  注入field
-
-        //todo @PostConstructor修饰的方法调用
-
-        return instance;
+        try {
+            populateBean(beanDefinition, instance);
+            invokeInitMethod(instance, beanDefinition);
+            return instance;
+        } catch (IllegalAccessException e) {
+            throw new BeanCreateException("createBean error ", e);
+        }
     }
 
     private void addSingleton(String beanName, Object singleton) {
@@ -188,6 +229,55 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         return constToUse;
     }
 
+    private void populateBean(BeanDefinition beanDefinition, Object instance) throws IllegalAccessException {
+        // bean实例化后置
+        for (InstantiationAwareBeanPostProcessor processor : beanPostProcessors) {
+            if (!processor.postProcessAfterInstantiation(instance, beanDefinition.getBeanName())) {
+                break;
+            }
+        }
+
+        // 注入field
+        for (Field field : beanDefinition.getFields()) {
+            Resource resource = AnnotationUtil.getAnnotation(field, Resource.class);
+            if (resource != null) {
+                autowiredByName(instance, field, resource.name());
+                continue;
+            }
+            Autowired autowired = AnnotationUtil.getAnnotation(field, Autowired.class);
+            if (autowired != null) {
+                autowiredByType(instance, field, autowired.required());
+                continue;
+            }
+            Value value = AnnotationUtil.getAnnotation(field, Value.class);
+            if (value != null) {
+                resolveSpEL(instance, field, value);
+            }
+        }
+    }
+
+    private void autowiredByName(Object instance, Field field, String beanName) throws IllegalAccessException {
+        String name = beanName;
+        if (!StringUtil.hasLength(beanName)) {
+            name = field.getName();
+        }
+
+        Object bean = getBean(name, field.getType());
+        field.set(instance, bean);
+    }
+
+    private void autowiredByType(Object instance, Field field, boolean required) throws IllegalAccessException {
+        Object bean = getBean(field.getType(), required);
+        field.set(instance, bean);
+    }
+
+    private void resolveSpEL(Object instance, Field field, Value value) {
+        // todo
+    }
+
+    private void invokeInitMethod(Object instance, BeanDefinition beanDefinition) {
+        //todo @PostConstructor修饰的方法调用
+    }
 
     /**
      * 根据class生成beanName
@@ -201,6 +291,5 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         }
         return StringUtil.lowerFirst(clz.getSimpleName());
     }
-
     
 }

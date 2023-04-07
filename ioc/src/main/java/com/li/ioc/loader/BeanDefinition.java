@@ -1,6 +1,10 @@
 package com.li.ioc.loader;
 
 
+import cn.hutool.core.util.ReflectUtil;
+
+import java.lang.reflect.Field;
+
 /**
  * 单例Bean定义内容
  */
@@ -20,5 +24,8 @@ public class BeanDefinition {
         return beanClz;
     }
 
+    public Field[] getFields() {
+        return ReflectUtil.getFields(beanClz);
+    }
 
 }
