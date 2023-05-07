@@ -7,12 +7,13 @@ import java.lang.annotation.*;
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
 @Documented
 public @interface Component {
 
     /**
      * @return 指定beanName
      */
-    String name() default "";
+    String value() default "";
 
 }

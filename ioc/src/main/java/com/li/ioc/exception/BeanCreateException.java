@@ -7,11 +7,19 @@ package com.li.ioc.exception;
  */
 public class BeanCreateException extends RuntimeException {
 
-    public BeanCreateException(String message) {
+    private String beanName;
+
+    public BeanCreateException(String beanName, String message) {
         super(message);
+        this.beanName = beanName;
     }
 
-    public BeanCreateException(String message, Throwable cause) {
+    public BeanCreateException(String beanName, String message, Throwable cause) {
         super(message, cause);
+        this.beanName = beanName;
+    }
+
+    public String getBeanName() {
+        return beanName;
     }
 }

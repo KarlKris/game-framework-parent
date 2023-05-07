@@ -12,4 +12,10 @@ import java.lang.annotation.*;
 @Inherited
 @Documented
 public @interface Qualifier {
+
+    /**
+     * @return beanName
+     */
+    String value();
+
 }

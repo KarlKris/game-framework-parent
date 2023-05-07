@@ -9,4 +9,11 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Bean {
+
+    /**
+     * @return 指定beanName
+     */
+    String value() default "";
+
+
 }

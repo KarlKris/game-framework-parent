@@ -1,11 +1,17 @@
 package com.li.common.util;
 
+import com.sun.istack.internal.Nullable;
+
+import java.util.Collection;
+
 /**
  * 字符串相关工具类
  */
 public class StringUtil {
 
     public static final String EMPTY = "";
+
+    private static final String[] EMPTY_STRING_ARRAY = {};
 
 
     /**
@@ -175,10 +181,14 @@ public class StringUtil {
         return new String(chars);
     }
 
-
-    public static void main(String[] args) {
-        String str = "hello world";
-        System.out.println(captureFirst(str));
-        System.out.println(lowerFirst(str));
+    /**
+     * Copy the given {@link Collection} into a {@code String} array.
+     * <p>The {@code Collection} must contain {@code String} elements only.
+     * @param collection the {@code Collection} to copy
+     * (potentially {@code null} or empty)
+     * @return the resulting {@code String} array
+     */
+    public static String[] toStringArray(@Nullable Collection<String> collection) {
+        return (collection != null && !collection.isEmpty()) ? collection.toArray(EMPTY_STRING_ARRAY) : EMPTY_STRING_ARRAY;
     }
 }
