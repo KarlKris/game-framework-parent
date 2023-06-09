@@ -4,8 +4,8 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.ArrayUtil;
-import com.li.common.util.ReflectionUtil;
-import com.li.common.util.StringUtil;
+import com.li.common.util.ReflectionUtils;
+import com.li.common.util.StringUtils;
 import com.li.ioc.anno.Autowired;
 import com.li.ioc.anno.Qualifier;
 import com.li.ioc.anno.Value;
@@ -18,8 +18,10 @@ import com.li.ioc.processor.InstantiationAwareBeanPostProcessor;
 import com.li.ioc.prop.MutablePropertySources;
 import com.li.ioc.prop.PropertySource;
 import com.li.ioc.prop.PropertySources;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -27,18 +29,19 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Supplier;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author li-yuanwen
  * @date 2023/03/16
  */
+@Slf4j
 public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
 
     /** 单例缓存 key:beanName-->value:instance **/
-    private final Map<String, Object> singletonObjects = new HashMap<>(64);
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(64);
     /** 二级缓存（用于未完全注入field的object） **/
-    private final Map<String, Object> earlySingletonObjects = new HashMap<>();
+    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>();
 
     /** 正在创建beanName **/
     private final Set<String> singletonsCurrentlyInCreation = new ConcurrentHashSet<>(64);
@@ -96,6 +99,11 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
 
     @Override
     public void destroy() {
+        synchronized (singletonObjects) {
+            for (Object bean : singletonObjects.values()) {
+                invokePreDestroyMethod(bean);
+            }
+        }
         singletonObjects.clear();
     }
 
@@ -219,7 +227,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         }
         try {
             populateBean(beanDefinition, instance);
-            invokeInitMethod(instance, beanDefinition);
+            invokeInitMethod(instance);
             return instance;
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new BeanCreateException(beanName, "createBean error ", e);
@@ -235,7 +243,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
     }
 
     private Object newInstance(BeanDefinition beanDefinition) {
-        if (beanDefinition.getFactoryMethod() != null && StringUtil.hasLength(beanDefinition.getFactoryBeanName())) {
+        if (beanDefinition.getFactoryMethod() != null && StringUtils.hasLength(beanDefinition.getFactoryBeanName())) {
             return newInstanceByFactoryMethod(beanDefinition);
         }
         return newInstanceByConstructor(beanDefinition);
@@ -329,12 +337,12 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
 
     private void autowiredByName(Object instance, Field field, String beanName) throws IllegalAccessException {
         String name = beanName;
-        if (!StringUtil.hasLength(beanName)) {
+        if (!StringUtils.hasLength(beanName)) {
             name = field.getName();
         }
 
         Object bean = getBean(name, field.getType());
-        ReflectionUtil.makeAccessible(field);
+        ReflectionUtils.makeAccessible(field);
         field.set(instance, bean);
     }
 
@@ -343,7 +351,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         Qualifier qualifier = AnnotationUtil.getAnnotation(field, Qualifier.class);
         if (qualifier != null) {
             String beanName = qualifier.value();
-            if (!StringUtil.hasLength(beanName)) {
+            if (!StringUtils.hasLength(beanName)) {
                 throw new IllegalAccessException("not qualifier beanName: "
                         + instance.getClass().getSimpleName()
                         + "." + field.getName());
@@ -355,13 +363,13 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         } else {
             bean = getBean(field.getType(), required);
         }
-        ReflectionUtil.makeAccessible(field);
+        ReflectionUtils.makeAccessible(field);
         field.set(instance, bean);
     }
 
     private void resolveValueExpression(Object instance, Field field, Value annotation) throws IllegalAccessException {
         String expression = annotation.value();
-        if (!StringUtil.hasLength(expression)) {
+        if (!StringUtils.hasLength(expression)) {
             throw new IllegalStateException("@Value.value is Blank: "
                     + instance.getClass().getSimpleName() + "." + field.getName());
         }
@@ -377,17 +385,29 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
                         + instance.getClass().getSimpleName() + "." + field.getName());
             }
         }
-        ReflectionUtil.makeAccessible(field);
+        ReflectionUtils.makeAccessible(field);
         field.set(instance, value);
     }
 
-    private void invokeInitMethod(Object instance, BeanDefinition beanDefinition) throws InvocationTargetException, IllegalAccessException {
+    private void invokeInitMethod(Object instance) throws InvocationTargetException, IllegalAccessException {
         // @PostConstruct修饰的方法调用
-        for (Method method : ReflectionUtil.getMethods(instance.getClass()
+        for (Method method : ReflectionUtils.getMethods(instance.getClass()
                 , method -> AnnotationUtil.hasAnnotation(method, PostConstruct.class))) {
             method.invoke(instance);
         }
 
+    }
+
+    private void invokePreDestroyMethod(Object instance) {
+        // @PostConstruct修饰的方法调用
+        for (Method method : ReflectionUtils.getMethods(instance.getClass()
+                , method -> AnnotationUtil.hasAnnotation(method, PreDestroy.class))) {
+            try {
+                method.invoke(instance);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                log.error("bean invoke preDestroy method error: ", e);
+            }
+        }
     }
     
 }

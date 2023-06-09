@@ -3,7 +3,7 @@ package com.li.common.hotswap.agent;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import com.li.agent.HotSwapAgent;
-import com.li.common.util.StringUtil;
+import com.li.common.util.StringUtils;
 import com.li.agent.HotSwapAgentLocation;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
@@ -43,7 +43,7 @@ public class HotSwap {
 
         // 当前进程pid
         String name = ManagementFactory.getRuntimeMXBean().getName();
-        PID = StringUtil.substringBefore(name, "@");
+        PID = StringUtils.substringBefore(name, "@");
         LOGGER.error("current pid: {}", PID);
     }
 

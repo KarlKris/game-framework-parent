@@ -1,7 +1,7 @@
 package com.li.common.hotswap.recompile;
 
 import cn.hutool.core.io.FileUtil;
-import com.li.common.util.StringUtil;
+import com.li.common.util.StringUtils;
 import javassist.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +124,7 @@ public class RecompileHotSwap {
         DateTimeFormatter pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm-ss");
         String time = localDateTime.format(pattern).replace(" ", "T");
 
-        String finalPath = StringUtil.join(
+        String finalPath = StringUtils.join(
                 new String[]{basePath, "recompile-output", className + "-" + time + ".class"},
                 File.separator);
         File to = new File(finalPath);

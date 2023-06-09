@@ -13,7 +13,7 @@
         <module>network</module>
         <module>common</module>
         <module>ioc</module>
-        <module>resources</module>
+        <module>game-core</module>
         <!--        <module>hotswap-agent</module>-->
     </modules>
 
@@ -26,7 +26,8 @@
         <lombok.version>1.18.22</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <game.version>1.0</game.version>
-        <log4j2.version>2.17.2</log4j2.version>
+        <log4j2.version>2.20.0</log4j2.version>
+        <jackson.version>2.15.0</jackson.version>
     </properties>
 
     <dependencies>
@@ -83,6 +84,11 @@
                 <version>3.21.0-GA</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
 
             <!-- 自己写的模块 -->
             <dependency>

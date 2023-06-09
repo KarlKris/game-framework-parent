@@ -3,8 +3,8 @@ package com.li.ioc.loader;
 import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.lang.ClassScanner;
 import cn.hutool.core.util.ArrayUtil;
-import com.li.common.util.ReflectionUtil;
-import com.li.common.util.StringUtil;
+import com.li.common.util.ReflectionUtils;
+import com.li.common.util.StringUtils;
 import com.li.ioc.anno.Bean;
 import com.li.ioc.anno.Component;
 import com.li.ioc.anno.Configuration;
@@ -58,7 +58,7 @@ public class ClassBeanDefinitionScanner implements BeanDefinitionLoader {
             return;
         }
         String beanName = component.value();
-        if (!StringUtil.hasLength(beanName)) {
+        if (!StringUtils.hasLength(beanName)) {
             beanName = BeanFactoryUtil.generateBeanName(clz);
         }
         beanDefinitions.add(new BeanDefinition(beanName, clz));
@@ -67,12 +67,12 @@ public class ClassBeanDefinitionScanner implements BeanDefinitionLoader {
         if (configuration == null) {
             return;
         }
-        for (Method method : ReflectionUtil.getMethods(clz
+        for (Method method : ReflectionUtils.getMethods(clz
                 , method -> AnnotationUtil.hasAnnotation(method, Bean.class))) {
             Bean bean = AnnotationUtil.getAnnotation(method, Bean.class);
             Class<?> returnType = method.getReturnType();
             String innerBeanName = bean.value();
-            if (!StringUtil.hasLength(innerBeanName)) {
+            if (!StringUtils.hasLength(innerBeanName)) {
                 innerBeanName = BeanFactoryUtil.generateBeanName(returnType);
             }
             beanDefinitions.add(new BeanDefinition(innerBeanName, returnType, beanName, method));

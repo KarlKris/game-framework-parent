@@ -1,6 +1,6 @@
 package com.li.ioc.util;
 
-import com.li.common.util.StringUtil;
+import com.li.common.util.StringUtils;
 
 /**
  * BeanFactory 工具类
@@ -14,7 +14,7 @@ public class BeanFactoryUtil {
      * @return beanName
      */
     public static String generateBeanName(Class<?> clz) {
-        return StringUtil.lowerFirst(clz.getSimpleName());
+        return StringUtils.lowerFirst(clz.getSimpleName());
     }
 
 }

@@ -72,6 +72,11 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
 
     @Override
+    public void close() {
+        destroyBeans();
+    }
+
+    @Override
     public void refresh() {
         refreshBeanFactory();
 

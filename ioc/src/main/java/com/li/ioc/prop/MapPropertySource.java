@@ -1,6 +1,6 @@
 package com.li.ioc.prop;
 
-import com.li.common.util.StringUtil;
+import com.li.common.util.StringUtils;
 
 import java.util.Map;
 
@@ -24,6 +24,6 @@ public class MapPropertySource extends PropertySource<Map<String, String>> {
     }
 
     public String[] getPropertyNames() {
-        return StringUtil.toStringArray(getSource().keySet());
+        return StringUtils.toStringArray(getSource().keySet());
     }
 }

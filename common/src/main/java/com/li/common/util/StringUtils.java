@@ -1,13 +1,16 @@
 package com.li.common.util;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.sun.istack.internal.Nullable;
 
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.StringJoiner;
 
 /**
  * 字符串相关工具类
  */
-public class StringUtil {
+public class StringUtils {
 
     public static final String EMPTY = "";
 
@@ -190,5 +193,80 @@ public class StringUtil {
      */
     public static String[] toStringArray(@Nullable Collection<String> collection) {
         return (collection != null && !collection.isEmpty()) ? collection.toArray(EMPTY_STRING_ARRAY) : EMPTY_STRING_ARRAY;
+    }
+
+    /**
+     * Convert a {@code String} array into a delimited {@code String} (e.g. CSV).
+     * <p>Useful for {@code toString()} implementations.
+     * @param arr the array to display (potentially {@code null} or empty)
+     * @param delim the delimiter to use (typically a ",")
+     * @return the delimited {@code String}
+     */
+    public static String arrayToDelimitedString(@Nullable Object[] arr, String delim) {
+        if (ObjectUtils.isEmpty(arr)) {
+            return "";
+        }
+        if (arr.length == 1) {
+            return ObjectUtils.nullSafeToString(arr[0]);
+        }
+
+        StringJoiner sj = new StringJoiner(delim);
+        for (Object elem : arr) {
+            sj.add(String.valueOf(elem));
+        }
+        return sj.toString();
+    }
+
+    /**
+     * Convert a {@code Collection} into a delimited {@code String} (e.g. CSV).
+     * <p>Useful for {@code toString()} implementations.
+     * @param coll the {@code Collection} to convert (potentially {@code null} or empty)
+     * @param delim the delimiter to use (typically a ",")
+     * @return the delimited {@code String}
+     */
+    public static String collectionToDelimitedString(@Nullable Collection<?> coll, String delim) {
+        return collectionToDelimitedString(coll, delim, "", "");
+    }
+
+    /**
+     * Convert a {@code Collection} into a delimited {@code String} (e.g., CSV).
+     * <p>Useful for {@code toString()} implementations.
+     * @param coll the {@code Collection} to convert (potentially {@code null} or empty)
+     * @return the delimited {@code String}
+     */
+    public static String collectionToCommaDelimitedString(@Nullable Collection<?> coll) {
+        return collectionToDelimitedString(coll, ",");
+    }
+
+    /**
+     * Convert a {@link Collection} to a delimited {@code String} (e.g. CSV).
+     * <p>Useful for {@code toString()} implementations.
+     * @param coll the {@code Collection} to convert (potentially {@code null} or empty)
+     * @param delim the delimiter to use (typically a ",")
+     * @param prefix the {@code String} to start each element with
+     * @param suffix the {@code String} to end each element with
+     * @return the delimited {@code String}
+     */
+    public static String collectionToDelimitedString(
+            @Nullable Collection<?> coll, String delim, String prefix, String suffix) {
+
+        if (CollectionUtil.isEmpty(coll)) {
+            return "";
+        }
+
+        int totalLength = coll.size() * (prefix.length() + suffix.length()) + (coll.size() - 1) * delim.length();
+        for (Object element : coll) {
+            totalLength += String.valueOf(element).length();
+        }
+
+        StringBuilder sb = new StringBuilder(totalLength);
+        Iterator<?> it = coll.iterator();
+        while (it.hasNext()) {
+            sb.append(prefix).append(it.next()).append(suffix);
+            if (it.hasNext()) {
+                sb.append(delim);
+            }
+        }
+        return sb.toString();
     }
 }
