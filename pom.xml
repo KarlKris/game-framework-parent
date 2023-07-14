@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.li</groupId>
+    <groupId>com.echo</groupId>
     <artifactId>game-framework-parent</artifactId>
     <version>1.0</version>
     <packaging>pom</packaging>
@@ -14,7 +14,8 @@
         <module>common</module>
         <module>ioc</module>
         <module>game-core</module>
-        <!--        <module>hotswap-agent</module>-->
+        <module>autoconfigure</module>
+<!--        <module>hotswap-agent</module>-->
     </modules>
 
 
@@ -63,6 +64,7 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+                <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>jdk.tools</groupId>
@@ -88,21 +90,30 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+                <scope>compile</scope>
             </dependency>
 
             <!-- 自己写的模块 -->
             <dependency>
-                <groupId>com.li</groupId>
+                <groupId>com.echo</groupId>
                 <artifactId>common</artifactId>
                 <version>${game.version}</version>
+                <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>com.li</groupId>
+                <groupId>com.echo</groupId>
                 <artifactId>ioc</artifactId>
                 <version>${game.version}</version>
+                <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>com.li</groupId>
+                <groupId>com.echo</groupId>
+                <artifactId>game-core</artifactId>
+                <version>${game.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.echo</groupId>
                 <artifactId>hotswap-agent</artifactId>
                 <version>${game.version}</version>
             </dependency>
