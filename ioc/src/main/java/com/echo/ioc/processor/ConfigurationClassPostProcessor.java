@@ -60,11 +60,12 @@ public class ConfigurationClassPostProcessor implements BeanFactoryPostProcessor
                 Bean bean = AnnotationUtil.getAnnotation(beanMethod, Bean.class);
                 Class<?> returnType = beanMethod.getReturnType();
                 String innerBeanName = bean.value();
+                boolean lazyInit = bean.isLazyInit();
                 if (!StringUtils.hasLength(innerBeanName)) {
                     innerBeanName = BeanFactoryUtil.generateBeanName(returnType);
                 }
                 registry.registerBeanDefinition(new MethodBeanDefinition(innerBeanName, returnType
-                        , definition.getBeanName(), beanMethod));
+                        , definition.getBeanName(), beanMethod, lazyInit));
             }
         }
 

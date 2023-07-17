@@ -16,4 +16,9 @@ public @interface Bean {
     String value() default "";
 
 
+    /**
+     * @return true 按需初始化bean;false 容器加载成功后初始化
+     */
+    boolean isLazyInit() default true;
+
 }

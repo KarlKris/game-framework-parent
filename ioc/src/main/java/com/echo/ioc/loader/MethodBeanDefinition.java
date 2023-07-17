@@ -13,11 +13,14 @@ public class MethodBeanDefinition extends BeanDefinition {
     private final String factoryBeanName;
     /** 创建Bean 工厂method **/
     private final Method factoryMethod;
+    /** 创建bean 时机 **/
+    private final boolean lazyInit;
 
-    public MethodBeanDefinition(String beanName, Class<?> beanClz, String factoryBeanName, Method factoryMethod) {
+    public MethodBeanDefinition(String beanName, Class<?> beanClz, String factoryBeanName, Method factoryMethod, boolean isLazyInit) {
         super(beanName, beanClz, new StandardMethodMetadata(factoryMethod));
         this.factoryBeanName = factoryBeanName;
         this.factoryMethod = factoryMethod;
+        this.lazyInit = isLazyInit;
     }
 
     public String getFactoryBeanName() {
@@ -28,4 +31,8 @@ public class MethodBeanDefinition extends BeanDefinition {
         return factoryMethod;
     }
 
+    @Override
+    public boolean isLazyInit() {
+        return lazyInit;
+    }
 }

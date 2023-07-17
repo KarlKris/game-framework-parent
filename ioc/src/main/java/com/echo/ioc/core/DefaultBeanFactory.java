@@ -1,6 +1,7 @@
 package com.echo.ioc.core;
 
 import com.echo.common.util.StringUtils;
+import com.echo.ioc.exception.BeansException;
 import com.echo.ioc.exception.NoSuchBeanDefinitionException;
 import com.echo.ioc.exception.NoSuchBeanException;
 import com.echo.ioc.exception.NoUniqueBeanDefinitionException;
@@ -119,6 +120,20 @@ public class DefaultBeanFactory extends AbstractBeanFactory implements BeanDefin
     protected void afterAddSingleton(String beanName) {
         // 添加单例后就删除BeanDefinition
         removeBeanDefinition(beanName);
+    }
+
+    @Override
+    public void preInstantiateSingletons() throws BeansException {
+        List<String> beanNames = new LinkedList<>();
+        for (Map.Entry<String, BeanDefinition> entry : beanDefinitions.entrySet()) {
+            if (!entry.getValue().isLazyInit()) {
+                beanNames.add(entry.getKey());
+            }
+        }
+        if (beanNames.isEmpty()) {
+            return;
+        }
+        beanNames.forEach(this::getBean);
     }
 
     // -------------------------------------------------------------------------------

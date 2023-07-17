@@ -3,7 +3,7 @@
 <configuration monitorInterval="5">
     <Properties>
         <property name="log.level">INFO</property>
-        <property name="log.path">D:/workspace/ame-framework-parent/logs</property>
+        <property name="log.path">D:/workspace/game-framework-parent/logs</property>
         <property name="log.name">ioc</property>
 
         <!-- 定义日志文件名格式化 -->

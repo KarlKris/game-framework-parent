@@ -7,15 +7,12 @@ import cn.hutool.core.util.ArrayUtil;
 import com.echo.common.util.ReflectionUtils;
 import com.echo.common.util.StringUtils;
 import com.echo.ioc.anno.Value;
-import com.echo.ioc.exception.BeanCreateException;
+import com.echo.ioc.exception.*;
 import com.echo.ioc.loader.BeanDefinition;
 import com.echo.ioc.loader.MethodBeanDefinition;
 import com.echo.ioc.processor.BeanPostProcessor;
 import com.echo.ioc.anno.Autowired;
 import com.echo.ioc.anno.Qualifier;
-import com.echo.ioc.exception.BeanCurrentlyInCreationException;
-import com.echo.ioc.exception.BeanNotOfRequiredTypeException;
-import com.echo.ioc.exception.NoSuchBeanDefinitionException;
 import com.echo.ioc.processor.InstantiationAwareBeanPostProcessor;
 import com.echo.ioc.prop.*;
 import lombok.extern.slf4j.Slf4j;
@@ -415,6 +412,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         // @PostConstruct修饰的方法调用
         for (Method method : ReflectionUtils.getMethods(instance.getClass()
                 , method -> AnnotationUtil.hasAnnotation(method, PostConstruct.class))) {
+            ReflectionUtils.makeAccessible(method);
             method.invoke(instance);
             break;
         }
@@ -425,6 +423,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         for (Method method : ReflectionUtils.getMethods(instance.getClass()
                 , method -> AnnotationUtil.hasAnnotation(method, PreDestroy.class))) {
             try {
+                ReflectionUtils.makeAccessible(method);
                 method.invoke(instance);
                 break;
             } catch (IllegalAccessException | InvocationTargetException e) {

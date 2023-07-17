@@ -55,7 +55,7 @@ public class OnBeanCondition extends AbstractCondition implements ConfigurationC
         if (ArrayUtil.isEmpty(classNames)) {
             return Collections.emptyList();
         }
-        List<String> list = new ArrayList<>(classNames.length);
+        List<String> matching = new ArrayList<>(classNames.length);
         for (String className : classNames) {
             List<String> beanNames = null;
             try {
@@ -64,13 +64,17 @@ public class OnBeanCondition extends AbstractCondition implements ConfigurationC
             } catch (ClassNotFoundException e) {
                 // ignore
             } finally {
-                if ((beanNames == null || beanNames.isEmpty()) && !contain) {
-                    list.add(className);
-                } else if (contain) {
-                    list.add(className);
+                if (beanNames == null || beanNames.isEmpty()) {
+                    if (!contain) {
+                        matching.add(className);
+                    }
+                }  else {
+                    if (contain) {
+                        matching.add(className);
+                    }
                 }
             }
         }
-        return list;
+        return matching;
     }
 }

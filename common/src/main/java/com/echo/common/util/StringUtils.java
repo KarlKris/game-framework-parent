@@ -268,4 +268,28 @@ public class StringUtils {
         }
         return sb.toString();
     }
+
+    /**
+     * Test if the given {@code String} starts with the specified prefix,
+     * ignoring upper/lower case.
+     * @param str the {@code String} to check
+     * @param prefix the prefix to look for
+     * @see java.lang.String#startsWith
+     */
+    public static boolean startsWithIgnoreCase(String str, String prefix) {
+        return (str != null && prefix != null && str.length() >= prefix.length() &&
+                str.regionMatches(true, 0, prefix, 0, prefix.length()));
+    }
+
+    /**
+     * Test if the given {@code String} ends with the specified suffix,
+     * ignoring upper/lower case.
+     * @param str the {@code String} to check
+     * @param suffix the suffix to look for
+     * @see java.lang.String#endsWith
+     */
+    public static boolean endsWithIgnoreCase(String str, String suffix) {
+        return (str != null && suffix != null && str.length() >= suffix.length() &&
+                str.regionMatches(true, str.length() - suffix.length(), suffix, 0, suffix.length()));
+    }
 }

@@ -16,7 +16,7 @@ public interface ConfigurationCondition extends Condition {
         /** {@code @Configuration}修饰的类解析阶段 {@link Condition}   **/
         PARSE_CONFIGURATION,
 
-        /** {@code @Configuration}修饰的类内注册Bean注册进BeanFactory后的再判断阶段 {@link Condition}   **/
+        /** {@code @Configuration}修饰的类内Bean注册进BeanFactory前的再判断阶段 {@link Condition}   **/
         REGISTER_BEAN,
 
     }

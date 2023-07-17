@@ -3,6 +3,7 @@ package com.echo.common.resource.storage;
 import cn.hutool.core.annotation.AnnotationUtil;
 import com.echo.common.resource.ResourceDefinition;
 import com.echo.common.resource.anno.ResourceObj;
+import com.echo.common.resource.reader.ResourceReader;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -23,12 +24,12 @@ public class StorageManager {
     private final ConcurrentHashMap<Class<?>, ResourceStorage<?, ?>> storages = new ConcurrentHashMap<>();
 
 
-    public void initialize(ResourceDefinition definition) {
+    public void initialize(ResourceDefinition definition, ResourceReader reader) {
         Class<?> clz = definition.getClz();
         if (resourceDefinitions.putIfAbsent(clz, definition) != null) {
             throw new RuntimeException("资源类[" + clz.getName() + "]ResourceDefinition重复");
         }
-        initializeStorage(clz);
+        initializeStorage(clz, reader);
     }
 
     public void validate(ResourceDefinition definition) {
@@ -53,19 +54,17 @@ public class StorageManager {
         throw new RuntimeException("资源[" + clz.getName() + "]ResourceStorage不存在");
     }
 
-    private void initializeStorage(Class<?> clz) {
+    private void initializeStorage(Class<?> clz, ResourceReader resourceReader) {
         ResourceDefinition definition = this.resourceDefinitions.get(clz);
         if (definition == null) {
             throw new RuntimeException("资源类[" + clz.getName() + "]的ResourceDefinition不存在");
         }
         ResourceObj obj = AnnotationUtil.getAnnotation(clz, ResourceObj.class);
         assert obj != null;
-//        DefaultResourceStorage<?, ?> storage = applicationContext.getAutowireCapableBeanFactory().createBean(DefaultResourceStorage.class);
-//        ResourceStorage<?, ?> prev = storages.putIfAbsent(clz, storage);
-//        if (prev == null) {
-//            storage.initialize(definition, applicationContext.getBean(obj.reader()));
-//            return;
-//        }
-//        applicationContext.getAutowireCapableBeanFactory().destroyBean(storage);
+        DefaultResourceStorage<?, ?> storage = new DefaultResourceStorage<>();
+        ResourceStorage<?, ?> prev = storages.putIfAbsent(clz, storage);
+        if (prev == null) {
+            storage.initialize(definition, resourceReader);
+        }
     }
 }

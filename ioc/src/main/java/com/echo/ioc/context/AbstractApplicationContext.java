@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * ApplicationContext 基类
@@ -102,6 +101,9 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
         // Register bean processors that intercept bean creation.
         registerBeanPostProcessors(beanFactory);
+
+        // 初始化非懒加载bean
+        beanFactory.preInstantiateSingletons();
     }
 
 

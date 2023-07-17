@@ -1,6 +1,7 @@
 package com.echo.ioc.core;
 
 
+import com.echo.ioc.exception.BeansException;
 import com.echo.ioc.processor.BeanPostProcessor;
 import com.echo.ioc.prop.PropertyResolver;
 import com.echo.ioc.prop.PropertySource;
@@ -37,6 +38,12 @@ public interface ConfigurableBeanFactory extends BeanFactory, SingletonBeanRegis
      * @param propertySource 属性值
      */
     void addPropertySource(PropertySource<?> propertySource);
+
+    /**
+     * 实例化所有非懒加载的bean
+     * @throws BeansException
+     */
+    void preInstantiateSingletons() throws BeansException;
 
     /**
      * 销毁容器中的所有单例

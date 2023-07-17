@@ -1,5 +1,6 @@
 package com.echo.common.conversion;
 
+import cn.hutool.core.convert.BasicType;
 import cn.hutool.core.lang.Assert;
 import com.echo.common.conversion.converter.Converter;
 
@@ -109,7 +110,14 @@ public class ConversionService implements ConverterRegistry {
 
         public boolean isConvert(ConvertiblePair pair) {
             if (this == pair) return true;
-            return Objects.equals(sourceType, pair.sourceType) && targetType.isAssignableFrom(pair.targetType);
+            if (!Objects.equals(sourceType, pair.sourceType)) {
+                return false;
+            }
+            Class<?> compareTargetType = pair.targetType;
+            if (compareTargetType.isPrimitive()) {
+                compareTargetType = BasicType.wrap(compareTargetType);
+            }
+            return targetType.isAssignableFrom(compareTargetType);
         }
 
         @Override

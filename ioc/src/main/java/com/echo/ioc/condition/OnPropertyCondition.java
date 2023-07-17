@@ -1,6 +1,7 @@
 package com.echo.ioc.condition;
 
 import cn.hutool.core.util.ArrayUtil;
+import com.echo.common.util.StringUtils;
 import com.echo.ioc.anno.ConditionalOnProperty;
 import com.echo.ioc.core.ConfigurableBeanFactory;
 import com.echo.ioc.prop.PropertyResolver;
@@ -13,7 +14,12 @@ import java.util.List;
 /**
  * 基于配置属性是否存在判断的Condition
  */
-public class OnPropertyCondition extends AbstractCondition {
+public class OnPropertyCondition extends AbstractCondition implements ConfigurationCondition {
+
+    @Override
+    public ConfigurationPhase getConfigurationPhase() {
+        return ConfigurationPhase.REGISTER_BEAN;
+    }
 
     @Override
     public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
@@ -22,33 +28,49 @@ public class OnPropertyCondition extends AbstractCondition {
         ConfigurableBeanFactory beanFactory = context.getBeanFactory();
         if (conditionalOnProperty != null) {
             String[] properties = conditionalOnProperty.value();
-            List<String> missing = filter(properties, beanFactory, false);
+            String requiredValue = conditionalOnProperty.havingValue();
+            List<String> noMatching = new ArrayList<>(properties.length);
+            List<String> missing = filter(properties, beanFactory, requiredValue, noMatching);
             if (!missing.isEmpty()) {
-                return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnProperty.class)
+                matchMessage = matchMessage.andCondition(ConditionalOnProperty.class)
                         .didNotFind("required propertyName", "required properties")
-                        .items(ConditionMessage.Style.QUOTE, missing));
+                        .items(ConditionMessage.Style.QUOTE, missing);
             }
-            matchMessage = matchMessage.andCondition(ConditionalOnProperty.class)
-                    .found("required propertyName", "required properties")
-                    .items(ConditionMessage.Style.QUOTE, filter(properties, beanFactory, true));
+            if (!noMatching.isEmpty()) {
+                matchMessage = matchMessage.andCondition(ConditionalOnProperty.class)
+                        .found("different value in propertyName", "different value in properties")
+                        .items(ConditionMessage.Style.QUOTE, noMatching);
+            }
+            if (!noMatching.isEmpty() || !missing.isEmpty()) {
+                return ConditionOutcome.noMatch(matchMessage);
+            }
         }
         return ConditionOutcome.match(matchMessage);
     }
 
-    private static List<String> filter(String[] properties, ConfigurableBeanFactory beanFactory, boolean contain) {
+    private static List<String> filter(String[] properties, ConfigurableBeanFactory beanFactory, String requiredValue, List<String> noMatching) {
         if (ArrayUtil.isEmpty(properties)) {
             return Collections.emptyList();
         }
-        PropertyResolver propertyResolver = beanFactory.getPropertyResolver();
-        List<String> list = new ArrayList<>(properties.length);
+        PropertyResolver resolver = beanFactory.getPropertyResolver();
+        List<String> missing = new ArrayList<>(properties.length);
         for (String propertyName : properties) {
-            if (propertyResolver.containsProperty(propertyName) && contain) {
-                list.add(propertyName);
-            } else if (!contain) {
-                list.add(propertyName);
+            if (!resolver.containsProperty(propertyName)) {
+                missing.add(propertyName);
+            } else {
+                if (!isMatch(resolver.getProperty(propertyName), requiredValue)) {
+                    noMatching.add(propertyName);
+                }
             }
         }
-        return list;
+        return missing;
+    }
+
+    private static boolean isMatch(String value, String requiredValue) {
+        if (StringUtils.hasLength(requiredValue)) {
+            return requiredValue.equalsIgnoreCase(value);
+        }
+        return !"false".equalsIgnoreCase(value);
     }
 
 }

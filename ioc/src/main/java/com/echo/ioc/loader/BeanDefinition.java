@@ -68,5 +68,11 @@ public class BeanDefinition implements AnnotatedBeanDefinition {
         return metadata.hasAnnotation(Configuration.class) || metadata.hasAnnotation(Conditional.class);
     }
 
+    public String getBeanClassName() {
+        return beanClz.getName();
+    }
 
+    public boolean isLazyInit() {
+        return true;
+    }
 }
