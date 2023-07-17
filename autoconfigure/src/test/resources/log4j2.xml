@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration monitorInterval="5">
+    <Properties>
+        <property name="log.level">TRACE</property>
+        <property name="log.path">D:/workspace/game-framework-parent/logs</property>
+        <property name="log.name">ioc</property>
+
+        <!-- 定义日志文件名格式化 -->
+        <property name="log.timeFormat" value="yyyy-MM-dd"/>
+
+        <!-- 定义日志文件的输出格式。%d表示日期，%i索引【从数字0开始递增】，%thread表示线程名，%-5level：级别从左显示5个字符宽度，%logger{50} 表示logger名字最长50个字符，否则按照句点分割。%msg：日志消息，%n是换行符 -->
+        <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger:%line{50} - %msg%n"/>
+        <property name="log.console.pattern"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %style{[%thread]}{blue} %highlight{%-5level}{ERROR=RED, WARN=Yellow, INFO=Green, DEBUG=Cyan, TRACE=White} %style{%logger:%line{50}}{red} - %msg%n"/>
+
+        <!-- 定义日志文件保留天数 -->
+        <property name="log.maxHistory" value="30"/>
+
+        <!-- 定义日志文件最大限制 -->
+        <property name="log.maxFileSize" value="10MB"/>
+
+    </Properties>
+
+    <Appenders>
+        <!-- 控制台 -->
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="${log.console.pattern}" charset="UTF-8"/>
+        </Console>
+
+        <!-- 日志文件 -->
+        <RollingFile name="ROLLING_LOG" fileName="${log.path}/${log.name}.log"
+                     filePattern="${log.path}/${log.name}-%d{${log.timeFormat}}-%i.log.gz" append="true">
+            <PatternLayout pattern="${log.pattern}" charset="UTF-8"/>
+            <Policies>
+                <!-- 基于时间的触发策略。该策略主要是完成周期性的log文件封存工作。有两个参数：
+                interval，integer型，指定两次封存动作之间的时间间隔。单位:以日志的命名精度来确定单位，比如yyyy-MM-dd-HH 单位为小时，yyyy-MM-dd-HH-mm 单位为分钟
+                modulate，boolean型，说明是否对封存时间进行调制。若modulate=true，则封存时间将以0点为边界进行偏移计算。比如，modulate=true，interval=4hours，
+                那么假设上次封存日志的时间为00:00，则下次封存日志的时间为04:00，之后的封存时间依次为08:00，12:00，16:00-->
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="${log.maxFileSize}"/>
+            </Policies>
+            <!-- DefaultRolloverStrategy 属性如不设置，则默认为最多同一文件夹下当天 7 个文件后开始覆盖-->
+            <DefaultRolloverStrategy max="${log.maxHistory}">
+                <!-- 删除处理策略，在配置的路径中搜索，maxDepth 表示往下搜索的最大深度 -->
+                <Delete basePath="${log.path}" maxDepth="1">
+                    <!-- 文件名搜索匹配，支持正则 -->
+                    <IfFileName glob="*.log.gz"/>
+                    <!--!Note: 这里的 age 必须和 filePattern 协调, 后者是精确到 dd, 这里就要写成 xd, xD 就不起作用
+                    另外, 数字最好 >2, 否则可能造成删除的时候, 最近的文件还处于被占用状态,导致删除不成功!-->
+                    <!--7天-->
+                    <IfLastModified age="${log.maxHistory}d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+    </Appenders>
+
+    <!--Logger 节点用来单独指定日志的形式，比如要为指定包下的 class 指定不同的日志级别等。-->
+    <!--然后定义 loggers，只有定义了 logger 并引入的 appender，appender 才会生效-->
+    <loggers>
+        <!--若是 additivity 设为 false，则子 Logger 只会在自己的 appender 里输出，而不会在父 Logger 的 appender 里输出。-->
+        <!--Console、RollingFileInfo 没有配置 ThresholdFilter，默认走的是 AsyncRoot 的 level 级别-->
+        <root level="${log.level}">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ROLLING_LOG"/>
+        </root>
+    </loggers>
+</configuration>
