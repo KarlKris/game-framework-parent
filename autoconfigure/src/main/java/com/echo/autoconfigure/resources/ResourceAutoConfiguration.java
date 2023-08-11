@@ -1,9 +1,10 @@
 package com.echo.autoconfigure.resources;
 
-import com.echo.common.conversion.ConversionService;
-import com.echo.common.conversion.ConvertType;
-import com.echo.common.conversion.converter.JsonToObjConverter;
-import com.echo.common.conversion.converter.ObjToJsonConverter;
+import com.echo.common.convert.core.ConfigurableConversionService;
+import com.echo.common.convert.core.ConversionService;
+import com.echo.common.convert.support.DefaultConversionService;
+import com.echo.common.convert.support.JsonToObjConverter;
+import com.echo.common.convert.support.ObjToJsonConverter;
 import com.echo.common.resource.reader.XlsxReader;
 import com.echo.common.resource.reader.XmlReader;
 import com.echo.common.resource.storage.StorageManager;
@@ -21,10 +22,10 @@ public class ResourceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean("com.echo.common.conversion.ConversionService")
-    public ConversionService conversionService() {
-        ConversionService conversionService = new ConversionService();
-        conversionService.addConverter(ConvertType.JSON, new JsonToObjConverter());
-        conversionService.addConverter(ConvertType.JSON, new ObjToJsonConverter());
+    public ConfigurableConversionService conversionService() {
+        ConfigurableConversionService conversionService = new DefaultConversionService();
+        conversionService.addConverterFactory(new JsonToObjConverter());
+        conversionService.addConverter(new ObjToJsonConverter());
         return conversionService;
     }
 

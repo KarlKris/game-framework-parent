@@ -8,9 +8,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>network</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
-    <name>engine</name>
+    <name>network</name>
     <description>游戏框架之网络通讯</description>
 
     <properties>
@@ -18,12 +18,26 @@
         <netty-tcnative.version>2.0.51.Final</netty-tcnative.version>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.echo</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+    </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>${netty.version}</version>
+                <scope>compile</scope>
+                <optional>true</optional>
             </dependency>
         </dependencies>
     </dependencyManagement>

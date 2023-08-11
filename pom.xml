@@ -13,9 +13,9 @@
         <module>network</module>
         <module>common</module>
         <module>ioc</module>
-        <module>game-core</module>
         <module>autoconfigure</module>
-<!--        <module>hotswap-agent</module>-->
+        <module>data-mongo</module>
+        <!--        <module>hotswap-agent</module>-->
     </modules>
 
 
@@ -108,7 +108,7 @@
             </dependency>
             <dependency>
                 <groupId>com.echo</groupId>
-                <artifactId>game-core</artifactId>
+                <artifactId>data-mongo</artifactId>
                 <version>${game.version}</version>
                 <scope>compile</scope>
             </dependency>

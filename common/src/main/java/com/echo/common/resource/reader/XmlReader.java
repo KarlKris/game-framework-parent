@@ -1,6 +1,6 @@
 package com.echo.common.resource.reader;
 
-import com.echo.common.conversion.ConversionService;
+import com.echo.common.convert.core.ConversionService;
 import com.echo.common.util.ObjectUtils;
 import com.echo.common.util.ReflectionUtils;
 import org.dom4j.Attribute;

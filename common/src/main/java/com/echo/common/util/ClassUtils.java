@@ -2,6 +2,7 @@ package com.echo.common.util;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ClassUtil;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.io.Closeable;
 import java.io.Externalizable;
@@ -38,7 +39,7 @@ public class ClassUtils extends ClassUtil {
     private static final char NESTED_CLASS_SEPARATOR = '$';
 
     /** The CGLIB class separator: {@code "$$"}. */
-    public static final String CGLIB_CLASS_SEPARATOR = "$$";
+    public static final String JAVASSIST_CLASS_SEPARATOR = "$$";
 
     /** The ".class" file suffix. */
     public static final String CLASS_FILE_SUFFIX = ".class";
@@ -377,7 +378,7 @@ public class ClassUtils extends ClassUtil {
      */
     public static String getShortName(String className) {
         int lastDotIndex = className.lastIndexOf(PACKAGE_SEPARATOR);
-        int nameEndIndex = className.indexOf(CGLIB_CLASS_SEPARATOR);
+        int nameEndIndex = className.indexOf(JAVASSIST_CLASS_SEPARATOR);
         if (nameEndIndex == -1) {
             nameEndIndex = className.length();
         }
@@ -394,5 +395,212 @@ public class ClassUtils extends ClassUtil {
     public static String getShortName(Class<?> clazz) {
         return getShortName(getQualifiedName(clazz));
     }
+
+    /**
+     * Determine if the given type is assignable from the given value,
+     * assuming setting by reflection. Considers primitive wrapper classes
+     * as assignable to the corresponding primitive types.
+     * @param type the target type
+     * @param value the value that should be assigned to the type
+     * @return if the type is assignable from the value
+     */
+    public static boolean isAssignableValue(Class<?> type, Object value) {
+        Assert.notNull(type, "Type must not be null");
+        return (value != null ? isAssignable(type, value.getClass()) : !type.isPrimitive());
+    }
+
+    /**
+     * Check if the right-hand side type may be assigned to the left-hand side
+     * type, assuming setting by reflection. Considers primitive wrapper
+     * classes as assignable to the corresponding primitive types.
+     * @param lhsType the target type (left-hand side (LHS) type)
+     * @param rhsType the value type (right-hand side (RHS) type) that should
+     * be assigned to the target type
+     * @return {@code true} if {@code rhsType} is assignable to {@code lhsType}
+     */
+    public static boolean isAssignable(Class<?> lhsType, Class<?> rhsType) {
+        Assert.notNull(lhsType, "Left-hand side type must not be null");
+        Assert.notNull(rhsType, "Right-hand side type must not be null");
+        if (lhsType.isAssignableFrom(rhsType)) {
+            return true;
+        }
+        if (lhsType.isPrimitive()) {
+            Class<?> resolvedPrimitive = primitiveWrapperTypeMap.get(rhsType);
+            return (lhsType == resolvedPrimitive);
+        }
+        else {
+            Class<?> resolvedWrapper = primitiveTypeToWrapperMap.get(rhsType);
+            return (resolvedWrapper != null && lhsType.isAssignableFrom(resolvedWrapper));
+        }
+    }
+
+    /**
+     * Return all interfaces that the given instance implements as an array,
+     * including ones implemented by superclasses.
+     * @param instance the instance to analyze for interfaces
+     * @return all interfaces that the given instance implements as an array
+     */
+    public static Class<?>[] getAllInterfaces(Object instance) {
+        Assert.notNull(instance, "Instance must not be null");
+        return getAllInterfacesForClass(instance.getClass());
+    }
+
+    /**
+     * Return all interfaces that the given class implements as an array,
+     * including ones implemented by superclasses.
+     * <p>If the class itself is an interface, it gets returned as sole interface.
+     * @param clazz the class to analyze for interfaces
+     * @return all interfaces that the given object implements as an array
+     */
+    public static Class<?>[] getAllInterfacesForClass(Class<?> clazz) {
+        return getAllInterfacesForClass(clazz, null);
+    }
+
+    /**
+     * Return all interfaces that the given class implements as an array,
+     * including ones implemented by superclasses.
+     * <p>If the class itself is an interface, it gets returned as sole interface.
+     * @param clazz the class to analyze for interfaces
+     * @param classLoader the ClassLoader that the interfaces need to be visible in
+     * (may be {@code null} when accepting all declared interfaces)
+     * @return all interfaces that the given object implements as an array
+     */
+    public static Class<?>[] getAllInterfacesForClass(Class<?> clazz, ClassLoader classLoader) {
+        return toClassArray(getAllInterfacesForClassAsSet(clazz, classLoader));
+    }
+
+    /**
+     * Return all interfaces that the given instance implements as a Set,
+     * including ones implemented by superclasses.
+     * @param instance the instance to analyze for interfaces
+     * @return all interfaces that the given instance implements as a Set
+     */
+    public static Set<Class<?>> getAllInterfacesAsSet(Object instance) {
+        Assert.notNull(instance, "Instance must not be null");
+        return getAllInterfacesForClassAsSet(instance.getClass());
+    }
+
+    /**
+     * Return all interfaces that the given class implements as a Set,
+     * including ones implemented by superclasses.
+     * <p>If the class itself is an interface, it gets returned as sole interface.
+     * @param clazz the class to analyze for interfaces
+     * @return all interfaces that the given object implements as a Set
+     */
+    public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz) {
+        return getAllInterfacesForClassAsSet(clazz, null);
+    }
+
+    /**
+     * Return all interfaces that the given class implements as a Set,
+     * including ones implemented by superclasses.
+     * <p>If the class itself is an interface, it gets returned as sole interface.
+     * @param clazz the class to analyze for interfaces
+     * @param classLoader the ClassLoader that the interfaces need to be visible in
+     * (may be {@code null} when accepting all declared interfaces)
+     * @return all interfaces that the given object implements as a Set
+     */
+    public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, ClassLoader classLoader) {
+        Assert.notNull(clazz, "Class must not be null");
+        if (clazz.isInterface() && isVisible(clazz, classLoader)) {
+            return Collections.singleton(clazz);
+        }
+        Set<Class<?>> interfaces = new LinkedHashSet<>();
+        Class<?> current = clazz;
+        while (current != null) {
+            Class<?>[] ifcs = current.getInterfaces();
+            for (Class<?> ifc : ifcs) {
+                if (isVisible(ifc, classLoader)) {
+                    interfaces.add(ifc);
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return interfaces;
+    }
+
+    /**
+     * Copy the given {@code Collection} into a {@code Class} array.
+     * <p>The {@code Collection} must contain {@code Class} elements only.
+     * @param collection the {@code Collection} to copy
+     * @return the {@code Class} array
+     * @since 3.1
+     * @see StringUtils#toStringArray
+     */
+    public static Class<?>[] toClassArray(Collection<Class<?>> collection) {
+        return (!CollectionUtils.isEmpty(collection) ? collection.toArray(EMPTY_CLASS_ARRAY) : EMPTY_CLASS_ARRAY);
+    }
+
+    /**
+     * Check whether the given class is visible in the given ClassLoader.
+     * @param clazz the class to check (typically an interface)
+     * @param classLoader the ClassLoader to check against
+     * (may be {@code null} in which case this method will always return {@code true})
+     */
+    public static boolean isVisible(Class<?> clazz, ClassLoader classLoader) {
+        if (classLoader == null) {
+            return true;
+        }
+        try {
+            if (clazz.getClassLoader() == classLoader) {
+                return true;
+            }
+        }
+        catch (SecurityException ex) {
+            // Fall through to loadable check below
+        }
+
+        // Visible if same Class can be loaded from given ClassLoader
+        return isLoadable(clazz, classLoader);
+    }
+
+    /**
+     * Check whether the given class is loadable in the given ClassLoader.
+     * @param clazz the class to check (typically an interface)
+     * @param classLoader the ClassLoader to check against
+     * @since 5.0.6
+     */
+    private static boolean isLoadable(Class<?> clazz, ClassLoader classLoader) {
+        try {
+            return (clazz == classLoader.loadClass(clazz.getName()));
+            // Else: different class with same name found
+        }
+        catch (ClassNotFoundException ex) {
+            // No corresponding class found at all
+            return false;
+        }
+    }
+
+
+    /**
+     * Return the user-defined class for the given instance: usually simply
+     * the class of the given instance, but the original class in case of a
+     * Javassist-generated subclass.
+     * @param instance the instance to check
+     * @return the user-defined class
+     */
+    public static Class<?> getUserClass(Object instance) {
+        Assert.notNull(instance, "Instance must not be null");
+        return getUserClass(instance.getClass());
+    }
+
+    /**
+     * Return the user-defined class for the given class: usually simply the given
+     * class, but the original class in case of a Javassist-generated subclass.
+     * @param clazz the class to check
+     * @return the user-defined class
+     * @see #JAVASSIST_CLASS_SEPARATOR
+     */
+    public static Class<?> getUserClass(Class<?> clazz) {
+        if (clazz.getName().contains(JAVASSIST_CLASS_SEPARATOR)) {
+            Class<?> superclass = clazz.getSuperclass();
+            if (superclass != null && superclass != Object.class) {
+                return superclass;
+            }
+        }
+        return clazz;
+    }
+
+
 
 }

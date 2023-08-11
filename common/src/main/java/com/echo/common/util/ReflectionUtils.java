@@ -11,6 +11,8 @@ public class ReflectionUtils extends ReflectUtil {
 
     private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
+    private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
+
     /**
      * Invoke the specified {@link Method} against the supplied target object with no arguments.
      * The target object can be {@code null} when invoking a static {@link Method}.
@@ -148,5 +150,61 @@ public class ReflectionUtils extends ReflectUtil {
             throw (Error) ex;
         }
         throw new UndeclaredThrowableException(ex);
+    }
+
+    /**
+     * Obtain an accessible constructor for the given class and parameters.
+     * @param clazz the clazz to check
+     * @param parameterTypes the parameter types of the desired constructor
+     * @return the constructor reference
+     * @throws NoSuchMethodException if no such constructor exists
+     * @since 5.0
+     */
+    public static <T> Constructor<T> accessibleConstructor(Class<T> clazz, Class<?>... parameterTypes) {
+        Constructor<T> ctor = getConstructor(clazz, parameterTypes);
+        makeAccessible(ctor);
+        return ctor;
+    }
+
+    /**
+     * Get the field represented by the supplied {@link Field field object} on the
+     * specified {@link Object target object}. In accordance with {@link Field#get(Object)}
+     * semantics, the returned value is automatically wrapped if the underlying field
+     * has a primitive type.
+     * <p>Thrown exceptions are handled via a call to {@link #handleReflectionException(Exception)}.
+     * @param field the field to get
+     * @param target the target object from which to get the field
+     * (or {@code null} for a static field)
+     * @return the field's current value
+     */
+    public static Object getField(Field field, Object target) {
+        try {
+            return field.get(target);
+        }
+        catch (IllegalAccessException ex) {
+            handleReflectionException(ex);
+        }
+        throw new IllegalStateException("Should never get here");
+    }
+
+    /**
+     * Set the field represented by the supplied {@linkplain Field field object} on
+     * the specified {@linkplain Object target object} to the specified {@code value}.
+     * <p>In accordance with {@link Field#set(Object, Object)} semantics, the new value
+     * is automatically unwrapped if the underlying field has a primitive type.
+     * <p>This method does not support setting {@code static final} fields.
+     * <p>Thrown exceptions are handled via a call to {@link #handleReflectionException(Exception)}.
+     * @param field the field to set
+     * @param target the target object on which to set the field
+     * (or {@code null} for a static field)
+     * @param value the value to set (may be {@code null})
+     */
+    public static void setField(Field field, Object target, Object value) {
+        try {
+            field.set(target, value);
+        }
+        catch (IllegalAccessException ex) {
+            handleReflectionException(ex);
+        }
     }
 }

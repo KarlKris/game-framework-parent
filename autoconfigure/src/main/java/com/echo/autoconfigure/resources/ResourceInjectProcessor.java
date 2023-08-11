@@ -1,13 +1,13 @@
 package com.echo.autoconfigure.resources;
 
-import com.echo.common.conversion.ConversionService;
-import com.echo.common.conversion.ConvertType;
-import com.echo.common.conversion.TypeDescriptor;
+import com.echo.common.convert.core.ConversionService;
+import com.echo.common.convert.core.TypeDescriptor;
 import com.echo.common.resource.anno.ResourceId;
 import com.echo.common.resource.storage.ResourceStorage;
 import com.echo.common.resource.storage.StorageManager;
 import com.echo.common.util.ReflectionUtils;
 import com.echo.common.util.StringUtils;
+import com.echo.common.util.TypeDescriptorUtils;
 import com.echo.ioc.exception.BeansException;
 import com.echo.ioc.processor.InstantiationAwareBeanPostProcessor;
 import org.slf4j.helpers.MessageFormatter;
@@ -92,7 +92,8 @@ public class ResourceInjectProcessor implements InstantiationAwareBeanPostProces
         assert idField != null;
         TypeDescriptor targetTypeDescriptor = new TypeDescriptor(idField);
 
-        Object key = conversionService.convert(ConvertType.JSON, annotation.key(), targetTypeDescriptor);
+        Object key = conversionService.convert(annotation.key(), TypeDescriptorUtils.STRING_DESCRIPTOR
+                , targetTypeDescriptor);
 
         @SuppressWarnings("rawtypes")
         ResourceStorage resourceStorage = getResourceStorage(resourceClz);
@@ -151,7 +152,7 @@ public class ResourceInjectProcessor implements InstantiationAwareBeanPostProces
                 throw new RuntimeException(e);
             }
             if (!type.isInstance(instance)) {
-                value = conversionService.convert(ConvertType.JSON, value, new TypeDescriptor(field));
+                value = conversionService.convert(value, field.getType());
             }
             // 注入属性
             inject(bean, field, value);

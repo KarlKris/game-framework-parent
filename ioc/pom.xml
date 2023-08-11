@@ -9,7 +9,8 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ioc</artifactId>
     <packaging>jar</packaging>
-    <name>游戏框架之Ioc容器</name>
+    <name>ioc</name>
+    <description>游戏框架之Ioc容器</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
