@@ -90,7 +90,7 @@ public class ResourceInjectProcessor implements InstantiationAwareBeanPostProces
         // 主键类型
         Field idField = getFirstDeclaredFieldWith(resourceClz, ResourceId.class);
         assert idField != null;
-        TypeDescriptor targetTypeDescriptor = new TypeDescriptor(idField);
+        TypeDescriptor targetTypeDescriptor = TypeDescriptorUtils.newInstance(idField);
 
         Object key = conversionService.convert(annotation.key(), TypeDescriptorUtils.STRING_DESCRIPTOR
                 , targetTypeDescriptor);

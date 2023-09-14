@@ -1,7 +1,5 @@
 package com.echo.mongo.core;
 
-import com.mongodb.bulk.BulkWriteResult;
-
 import java.util.Collection;
 
 /**
@@ -30,91 +28,38 @@ public interface InsertOperation {
      */
     <T> T insert(T objectToSave);
 
+    <T> T insert(T objectToSave, String collectionName);
+
 
     /**
-     * Trigger insert execution by calling one of the terminating methods.
+     * Insert a Collection of objects into a collection in a single batch write to the database.
      *
-     * @author Christoph Strobl
-     * @since 2.0
+     * @param batchToSave the batch of objects to save. Must not be {@literal null}.
+     * @param entityClass class that determines the collection to use. Must not be {@literal null}.
+     * @return the inserted objects that.
+     * @throws com.echo.mongo.excetion.MappingException if the target collection name cannot be
+     *                                                  {@link MongoOperations#getCollectionName(Class) derived} from the given type.
      */
-    interface TerminatingInsert<T> extends TerminatingBulkInsert<T> {
-
-        /**
-         * Insert exactly one object.
-         *
-         * @param object must not be {@literal null}.
-         * @return the inserted object.
-         * @throws IllegalArgumentException if object is {@literal null}.
-         */
-        T one(T object);
-
-        /**
-         * Insert a collection of objects.
-         *
-         * @param objects must not be {@literal null}.
-         * @return the inserted objects.
-         * @throws IllegalArgumentException if objects is {@literal null}.
-         */
-        Collection<? extends T> all(Collection<? extends T> objects);
-    }
+    <T> Collection<T> insert(Collection<? extends T> batchToSave, Class<?> entityClass);
 
     /**
-     * Trigger bulk insert execution by calling one of the terminating methods.
+     * Insert a batch of objects into the specified collection in a single batch write to the database.
      *
-     * @author Christoph Strobl
-     * @since 2.0
+     * @param batchToSave    the list of objects to save. Must not be {@literal null}.
+     * @param collectionName name of the collection to store the object in. Must not be {@literal null}.
+     * @return the inserted objects that.
      */
-    interface TerminatingBulkInsert<T> {
-
-        /**
-         * Bulk write collection of objects.
-         *
-         * @param objects must not be {@literal null}.
-         * @return resulting {@link BulkWriteResult}.
-         * @throws IllegalArgumentException if objects is {@literal null}.
-         */
-        BulkWriteResult bulk(Collection<? extends T> objects);
-    }
+    <T> Collection<T> insert(Collection<? extends T> batchToSave, String collectionName);
 
     /**
-     * Collection override (optional).
+     * Insert a mixed Collection of objects into a database collection determining the collection name to use based on the
+     * class.
      *
-     * @author Christoph Strobl
-     * @since 2.0
+     * @param objectsToSave the list of objects to save. Must not be {@literal null}.
+     * @return the inserted objects.
+     * @throws com.echo.mongo.excetion.MappingException if the target collection name cannot be
+     *                                                  {@link MongoOperations#getCollectionName(Class) derived} for the given objects.
      */
-    interface InsertWithCollection<T> {
-
-        /**
-         * Explicitly set the name of the collection. <br />
-         * Skip this step to use the default collection derived from the domain type.
-         *
-         * @param collection must not be {@literal null} nor {@literal empty}.
-         * @return new instance of {@link InsertWithBulkMode}.
-         * @throws IllegalArgumentException if collection is {@literal null}.
-         */
-        InsertWithBulkMode<T> inCollection(String collection);
-    }
-
-    /**
-     * @author Christoph Strobl
-     * @since 2.0
-     */
-    interface InsertWithBulkMode<T> extends TerminatingInsert<T> {
-
-        /**
-         * Define the {@link com.echo.mongo.core.BulkOperations.BulkMode} to use for bulk insert operation.
-         *
-         * @param bulkMode must not be {@literal null}.
-         * @return new instance of {@link TerminatingBulkInsert}.
-         * @throws IllegalArgumentException if bulkMode is {@literal null}.
-         */
-        TerminatingBulkInsert<T> withBulkMode(BulkOperations.BulkMode bulkMode);
-    }
-
-    /**
-     * @author Christoph Strobl
-     * @since 2.0
-     */
-    interface ExecutableInsert<T> extends TerminatingInsert<T>, InsertWithCollection<T>, InsertWithBulkMode<T> {}
+    <T> Collection<T> insertAll(Collection<? extends T> objectsToSave);
 
 }

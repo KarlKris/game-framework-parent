@@ -2,8 +2,8 @@ package com.echo.mongo.convert;
 
 import cn.hutool.core.lang.Assert;
 import com.echo.common.convert.CustomConversions;
+import com.echo.common.convert.core.ConfigurableConversionService;
 import com.echo.common.convert.core.ConversionService;
-import com.echo.common.convert.core.GenericConversionService;
 import com.echo.common.convert.core.TypeDescriptor;
 import com.echo.common.util.*;
 import com.echo.mongo.CodecRegistryProvider;
@@ -35,27 +35,39 @@ public class GenericMongoConverter implements MongoConverter {
     private static final String INCOMPATIBLE_TYPES = "Cannot convert %1$s of type %2$s into an instance of %3$s; Implement a custom Converter<%2$s, %3$s> and register it with the CustomConversions;";
     private static final String INVALID_TYPE_TO_READ = "Expected to read Document %s into type %s but didn't find a PersistentEntity for the latter";
 
-    public static final String DEFAULT_TYPE_KEY = "_class";
+    public static final String TYPE_KEY = "_class";
     private static final TypeDescriptor LIST_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(List.class);
     private static final TypeDescriptor MAP_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(Map.class);
-    private static final TypeDescriptor BSON_TYPE_DESCRIPTOR  = TypeDescriptor.valueOf(Bson.class);
+    private static final TypeDescriptor BSON_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(Bson.class);
 
-
-    private final GenericConversionService conversionService;
+    private final ConfigurableConversionService conversionService;
     private CustomConversions conversions = new MongoCustomConversions();
 
+    /**
+     * 用来替换keu中的{.}字符
+     **/
     protected String mapKeyDotReplacement = null;
+
+    /**
+     * 存储_class字段开关
+     **/
+    private boolean saveExtraClass = true;
 
     private final MongoMappingContext mappingContext;
     protected CodecRegistryProvider codecRegistryProvider;
 
     private final Map<Alias, Optional<TypeDescriptor>> typeCache = new ConcurrentHashMap<>();
 
-    public GenericMongoConverter(GenericConversionService conversionService, MongoMappingContext mappingContext) {
+    public GenericMongoConverter(ConfigurableConversionService conversionService, MongoMappingContext mappingContext) {
         this.conversionService = conversionService;
         this.mappingContext = mappingContext;
         initializeConverters();
     }
+
+    public MongoMappingContext getMappingContext() {
+        return mappingContext;
+    }
+
 
     /**
      * Registers the given custom conversions with the converter.
@@ -93,6 +105,9 @@ public class GenericMongoConverter implements MongoConverter {
         this.mapKeyDotReplacement = mapKeyDotReplacement;
     }
 
+    public void setSaveExtraClass(boolean saveExtraClass) {
+        this.saveExtraClass = saveExtraClass;
+    }
 
     /**
      * Registers additional converters that will be available when using the {@link ConversionService} directly (e.g. for
@@ -267,13 +282,61 @@ public class GenericMongoConverter implements MongoConverter {
 
         if (source instanceof Document) {
             Document document = (Document) source;
-            return Alias.ofNullable(document.get(DEFAULT_TYPE_KEY));
+            return Alias.ofNullable(document.get(TYPE_KEY));
         } else if (source instanceof DBObject) {
             DBObject dbObject = (DBObject) source;
-            return Alias.ofNullable(dbObject.get(DEFAULT_TYPE_KEY));
+            return Alias.ofNullable(dbObject.get(TYPE_KEY));
         }
 
         throw new IllegalArgumentException("Cannot read alias from " + source.getClass());
+    }
+
+    /**
+     * Returns the alias to be used for the given {@link TypeDescriptor}.
+     *
+     * @param info must not be {@literal null}
+     * @return the alias for the given {@link TypeDescriptor} or {@literal null} of none was found or all mappers
+     * returned {@literal null}.
+     */
+    protected final Alias getAliasFor(TypeDescriptor info) {
+
+        if (info == null) {
+            throw new IllegalArgumentException("TypeInformation must not be null");
+        }
+
+        Alias alias = createAliasFor(info);
+        if (alias.isPresent()) {
+            return alias;
+        }
+
+        return Alias.NONE;
+    }
+
+    public Alias createAliasFor(TypeDescriptor type) {
+        return Alias.of(type.getType().getName());
+    }
+
+    public void writeType(TypeDescriptor typeDescriptor, Bson sink) {
+
+        if (typeDescriptor == null) {
+            throw new IllegalArgumentException("TypeInformation must not be null");
+        }
+
+        Alias alias = getAliasFor(typeDescriptor);
+        if (alias.isPresent()) {
+            writeTypeTo(sink, alias.getValue());
+        }
+    }
+
+    private void writeTypeTo(Bson sink, Object alias) {
+        if (!saveExtraClass) {
+            return;
+        }
+        if (sink instanceof Document) {
+            ((Document) sink).put(TYPE_KEY, alias);
+        } else if (sink instanceof DBObject) {
+            ((DBObject) sink).put(TYPE_KEY, alias);
+        }
     }
 
     private <T extends Object> T doConvert(Object value, Class<? extends T> target) {
@@ -290,15 +353,27 @@ public class GenericMongoConverter implements MongoConverter {
     }
 
 
-
     @Override
     public void write(Object source, Bson sink) {
         Class<?> entityType = ClassUtils.getUserClass(source.getClass());
         TypeDescriptor type = TypeDescriptor.valueOf(entityType);
 
-
         writeInternal(source, sink, type);
         BsonUtils.removeNullId(sink);
+        if (requiresTypeHint(entityType)) {
+            writeType(type, sink);
+        }
+    }
+
+    /**
+     * Check if a given type requires a type hint (aka {@literal _class} attribute) when writing to the document.
+     *
+     * @param type must not be {@literal null}.
+     * @return {@literal true} if not a simple type, {@link Collection} or type with custom write target.
+     */
+    private boolean requiresTypeHint(Class<?> type) {
+        return !conversions.isSimpleType(type) && !ClassUtils.isAssignable(Collection.class, type)
+                && !conversions.hasCustomWriteTarget(type, Document.class);
     }
 
     /**
@@ -332,6 +407,7 @@ public class GenericMongoConverter implements MongoConverter {
 
         MongoPersistentEntity entity = mappingContext.getRequiredPersistentEntity(entityType);
         writeInternal(obj, bson, entity);
+        addCustomTypeKeyIfNecessary(typeHint, obj, bson);
     }
 
     protected void writeInternal(Object obj, Bson bson, MongoPersistentEntity entity) {
@@ -392,7 +468,7 @@ public class GenericMongoConverter implements MongoConverter {
             return;
         }
 
-        TypeDescriptor valueType = TypeDescriptor.valueOf(obj.getClass());
+        TypeDescriptor valueType = TypeDescriptor.forObject(obj);
         TypeDescriptor type = prop.getDescriptor();
 
         if (valueType.isCollectionLike()) {
@@ -427,12 +503,33 @@ public class GenericMongoConverter implements MongoConverter {
 
         writeInternal(obj, document, entity);
         accessor.put(prop, document);
+
+        addCustomTypeKeyIfNecessary(type, obj, document);
+    }
+
+    /**
+     * Adds custom type information to the given {@link Document} if necessary. That is if the value is not the same as
+     * the one given. This is usually the case if you store a subtype of the actual declared type of the property.
+     *
+     * @param type  can be {@literal null}.
+     * @param value must not be {@literal null}.
+     * @param bson  must not be {@literal null}.
+     */
+    protected void addCustomTypeKeyIfNecessary(TypeDescriptor type, Object value, Bson bson) {
+
+        Class<?> reference = type != null ? type.getType() : Object.class;
+        Class<?> valueType = ClassUtils.getUserClass(value.getClass());
+
+        boolean notTheSameClass = !valueType.equals(reference);
+        if (notTheSameClass) {
+            writeType(TypeDescriptor.valueOf(valueType), bson);
+        }
     }
 
     /**
      * Writes the given {@link Map} using the given {@link MongoPersistentProperty} information.
      *
-     * @param map must not {@literal null}.
+     * @param map      must not {@literal null}.
      * @param property must not be {@literal null}.
      */
     protected Bson createMap(Map<Object, Object> map, MongoPersistentProperty property) {
@@ -441,6 +538,11 @@ public class GenericMongoConverter implements MongoConverter {
         Assert.notNull(property, "PersistentProperty must not be null");
 
         Document document = new Document();
+        writeMapInternal(map, document, property.getDescriptor());
+
+        if (!document.isEmpty() && !map.isEmpty()) {
+            return document;
+        }
 
         for (Map.Entry<Object, Object> entry : map.entrySet()) {
 
@@ -537,10 +639,6 @@ public class GenericMongoConverter implements MongoConverter {
         Map<Object, Object> map = CollectionUtils.createMap(mapType, rawKeyType, sourceMap.keySet().size());
 
         sourceMap.forEach((k, v) -> {
-
-//            if (getTypeMapper().isTypeKey(k)) {
-//                return;
-//            }
 
             Object key = potentiallyUnescapeMapKey(k);
 
@@ -746,7 +844,7 @@ public class GenericMongoConverter implements MongoConverter {
             }
             return CollectionUtils.asCollection(value);
         }
-
+        // 枚举存值
         return Enum.class.isAssignableFrom(value.getClass()) ? ((Enum<?>) value).name() : value;
     }
 

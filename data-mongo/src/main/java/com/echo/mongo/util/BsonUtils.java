@@ -1,11 +1,14 @@
 package com.echo.mongo.util;
 
 import com.echo.common.util.ObjectUtils;
+import com.echo.common.util.StringUtils;
+import com.echo.mongo.CodecRegistryProvider;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClientSettings;
 import org.bson.BSONObject;
 import org.bson.Document;
+import org.bson.codecs.DocumentCodec;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 
@@ -332,5 +335,78 @@ public class BsonUtils {
 
         throw new IllegalArgumentException(
                 String.format("Cannot add all to %s; Given Bson must be a Document or BSONObject.", target.getClass()));
+    }
+
+    /**
+     * Check if a given String looks like {@link Document#parse(String) parsable} json.
+     *
+     * @param value can be {@literal null}.
+     * @return {@literal true} if the given value looks like a json document.
+     * @since 3.0
+     */
+    public static boolean isJsonDocument(String value) {
+
+        if (!StringUtils.hasLength(value)) {
+            return false;
+        }
+
+        String potentialJson = value.trim();
+        return potentialJson.startsWith("{") && potentialJson.endsWith("}");
+    }
+
+    /**
+     * Parse the given {@literal json} to {@link Document} applying transformations as specified by a potentially given
+     * {@link org.bson.codecs.Codec}.
+     *
+     * @param json                  must not be {@literal null}.
+     * @param codecRegistryProvider can be {@literal null}. In that case the default {@link DocumentCodec} is used.
+     * @return never {@literal null}.
+     * @throws IllegalArgumentException if the required argument is {@literal null}.
+     * @since 3.0
+     */
+    public static Document parse(String json, CodecRegistryProvider codecRegistryProvider) {
+        if (json == null) {
+            throw new IllegalArgumentException("Json must not be null");
+        }
+
+        if (codecRegistryProvider == null) {
+            return Document.parse(json);
+        }
+
+        return Document.parse(json, codecRegistryProvider.getCodecFor(Document.class)
+                .orElseGet(() -> new DocumentCodec(codecRegistryProvider.getCodecRegistry())));
+    }
+
+    /**
+     * Return the {@link Bson} object as {@link Document}. Depending on the input type, the return value can be either a
+     * casted version of {@code bson} or a converted (detached from the original value).
+     *
+     * @param bson
+     * @return
+     * @since 3.2.5
+     */
+    public static Document asDocument(Bson bson) {
+        return asDocument(bson, MongoClientSettings.getDefaultCodecRegistry());
+    }
+
+    /**
+     * Return the {@link Bson} object as {@link Document}. Depending on the input type, the return value can be either a
+     * casted version of {@code bson} or a converted (detached from the original value) using the given
+     * {@link CodecRegistry} to obtain {@link org.bson.codecs.Codec codecs} that might be required for conversion.
+     *
+     * @param bson
+     * @param codecRegistry must not be {@literal null}.
+     * @return never {@literal null}.
+     * @since 4.0
+     */
+    public static Document asDocument(Bson bson, CodecRegistry codecRegistry) {
+
+        Map<String, Object> map = asMap(bson, codecRegistry);
+
+        if (map instanceof Document) {
+            return (Document) map;
+        }
+
+        return new Document(map);
     }
 }

@@ -1,6 +1,12 @@
 package com.echo.mongo.mapping;
 
 import com.echo.common.convert.core.TypeDescriptor;
+import com.echo.mongo.convert.EntityWriter;
+import com.echo.mongo.index.PropertyHandler;
+import com.echo.mongo.query.Query;
+import org.bson.Document;
+
+import java.lang.annotation.Annotation;
 
 /**
  * mongo 持久化实体
@@ -16,6 +22,10 @@ public interface MongoPersistentEntity extends Iterable<MongoPersistentProperty>
 
 
     TypeDescriptor getTypeDescriptor();
+
+    <A extends Annotation> boolean isAnnotationPresent(Class<A> annotationType);
+
+    <A extends Annotation> A findAnnotation(Class<A> annotationType);
 
 
     void addPersistentProperty(MongoPersistentProperty property);
@@ -60,4 +70,39 @@ public interface MongoPersistentEntity extends Iterable<MongoPersistentProperty>
      */
     boolean isIdProperty(MongoPersistentProperty property);
 
+
+    <T> Document toMappingDocument(T objectToSave, EntityWriter<T> writer);
+
+
+    /**
+     * Returns the identifier of the entity.
+     *
+     * @return
+     */
+    Object getId(Object object);
+
+    /**
+     * Returns the {@link Query} to find the entity by its identifier.
+     *
+     * @return
+     */
+    Query getByIdQuery(Object object);
+
+    /**
+     * Returns the {@link Query} to remove an entity by its {@literal id}
+     *
+     * @return the {@link Query} to use for removing the entity. Never {@literal null}.
+     * @since 2.2
+     */
+    default Query getRemoveByQuery(Object object) {
+        return getByIdQuery(object);
+    }
+
+    /**
+     * Applies the given {@link PropertyHandler} to all {@link MongoPersistentProperty}s contained in this
+     * {@link MongoPersistentEntity}. The iteration order is undefined.
+     *
+     * @param handler must not be {@literal null}.
+     */
+    void doWithProperties(PropertyHandler handler);
 }

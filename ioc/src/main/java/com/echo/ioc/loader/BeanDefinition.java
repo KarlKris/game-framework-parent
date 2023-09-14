@@ -7,6 +7,7 @@ import com.echo.ioc.anno.Configuration;
 import com.echo.ioc.util.AnnotatedTypeMetadata;
 import com.echo.ioc.util.StandardClassMetadata;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
@@ -66,6 +67,10 @@ public class BeanDefinition implements AnnotatedBeanDefinition {
 
     public boolean isConfigurationClass() {
         return metadata.hasAnnotation(Configuration.class) || metadata.hasAnnotation(Conditional.class);
+    }
+
+    public <A extends Annotation> A getAnnotation(Class<A> annotationType) {
+        return metadata.getAnnotation(annotationType);
     }
 
     public String getBeanClassName() {

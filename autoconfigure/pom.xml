@@ -27,6 +27,11 @@
             <groupId>com.echo</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.echo</groupId>
+            <artifactId>data-mongo</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!--test-->
         <dependency>

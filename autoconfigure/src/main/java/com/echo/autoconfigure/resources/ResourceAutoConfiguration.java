@@ -21,7 +21,7 @@ import com.echo.ioc.anno.Configuration;
 public class ResourceAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean("com.echo.common.conversion.ConversionService")
+    @ConditionalOnMissingBean("com.echo.common.convert.core.ConfigurableConversionService")
     public ConfigurableConversionService conversionService() {
         ConfigurableConversionService conversionService = new DefaultConversionService();
         conversionService.addConverterFactory(new JsonToObjConverter());

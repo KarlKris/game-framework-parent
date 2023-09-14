@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 
 
 /**
- * Contextual descriptor about a type to convert from or to.
+ * Contextual descriptor about a type
  * <p>Capable of representing arrays and generic collection types.
  *
  * @author Keith Donald
@@ -575,7 +575,7 @@ public class TypeDescriptor implements Serializable {
             type = Object.class;
         }
         TypeDescriptor desc = commonTypesCache.get(type);
-        return (desc != null ? desc : new TypeDescriptor(ResolvableType.forClass(type), null, null));
+        return (desc != null ? desc : new TypeDescriptor(ResolvableType.forClass(type), type, type.getAnnotations()));
     }
 
     /**

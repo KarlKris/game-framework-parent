@@ -6,13 +6,17 @@ import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.ArrayUtil;
 import com.echo.common.util.ReflectionUtils;
 import com.echo.common.util.StringUtils;
-import com.echo.ioc.anno.Value;
-import com.echo.ioc.exception.*;
-import com.echo.ioc.loader.BeanDefinition;
-import com.echo.ioc.loader.MethodBeanDefinition;
-import com.echo.ioc.processor.BeanPostProcessor;
 import com.echo.ioc.anno.Autowired;
 import com.echo.ioc.anno.Qualifier;
+import com.echo.ioc.anno.Value;
+import com.echo.ioc.exception.BeanCreateException;
+import com.echo.ioc.exception.BeanCurrentlyInCreationException;
+import com.echo.ioc.exception.BeanNotOfRequiredTypeException;
+import com.echo.ioc.exception.NoSuchBeanDefinitionException;
+import com.echo.ioc.loader.BeanDefinition;
+import com.echo.ioc.loader.MethodBeanDefinition;
+import com.echo.ioc.loader.PropertiesBeanDefinition;
+import com.echo.ioc.processor.BeanPostProcessor;
 import com.echo.ioc.processor.InstantiationAwareBeanPostProcessor;
 import com.echo.ioc.prop.*;
 import lombok.extern.slf4j.Slf4j;
@@ -324,6 +328,12 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         // bean实例化后置
         invokePostProcessAfterInstantiation(beanDefinition.getBeanName(), instance);
 
+        // 处理PropertiesBeanDefinition
+        if (beanDefinition instanceof PropertiesBeanDefinition) {
+            populatePropertiesBean((PropertiesBeanDefinition) beanDefinition, instance);
+            return;
+        }
+
         // 注入field
         for (Field field : beanDefinition.getFields()) {
             Resource resource = AnnotationUtil.getAnnotation(field, Resource.class);
@@ -340,6 +350,21 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
             if (value != null) {
                 resolveValueExpression(instance, field, value);
             }
+        }
+    }
+
+    private void populatePropertiesBean(PropertiesBeanDefinition beanDefinition, Object instance) throws IllegalAccessException {
+        String prefixName = beanDefinition.getPropertyPrefixName();
+        // 注入field
+        for (Field field : beanDefinition.getFields()) {
+            String name = field.getName();
+            String propertyName = prefixName + "." + name;
+            Object value = propertyResolver.getProperty(propertyName, field.getType());
+            if (value == null) {
+                continue;
+            }
+            ReflectionUtils.makeAccessible(field);
+            field.set(instance, value);
         }
     }
 

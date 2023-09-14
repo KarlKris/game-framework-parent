@@ -208,8 +208,8 @@ public class ClassUtils extends ClassUtil {
      * @return the primitive class, or {@code null} if the name does not denote
      * a primitive class or primitive array class
      */
-    
-    public static Class<?> resolvePrimitiveClassName( String name) {
+
+    public static Class<?> resolvePrimitiveClassName(String name) {
         Class<?> result = null;
         // Most class names will be quite long, considering that they
         // SHOULD sit in a package, so a length check is worthwhile.

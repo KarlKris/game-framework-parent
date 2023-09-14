@@ -2,6 +2,8 @@ package com.echo.mongo.mapping;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * mongodb 对应实体 class 容器
@@ -46,6 +48,21 @@ public class MongoManagedTypes implements ManagedTypes {
      */
     public static MongoManagedTypes fromIterable(Iterable<? extends Class<?>> types) {
         return from(ManagedTypes.fromIterable(types));
+    }
+
+    /**
+     * Factory method used to construct {@link MongoManagedTypes} from the given, required {@link Stream} of {@link Class
+     * types}.
+     *
+     * @param types {@link Stream} of {@link Class types} used to initialize the {@link ManagedTypes}; must not be
+     *              {@literal null}.
+     * @return new instance of {@link ManagedTypes} initialized the given, required {@link Stream} of {@link Class types}.
+     * @see java.util.stream.Stream
+     * @see #fromIterable(Iterable)
+     * @see #fromSupplier(Supplier)
+     */
+    public static MongoManagedTypes fromStream(Stream<? extends Class<?>> types) {
+        return from(ManagedTypes.fromStream(types));
     }
 
     /**

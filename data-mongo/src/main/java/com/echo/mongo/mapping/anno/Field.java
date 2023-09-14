@@ -9,11 +9,12 @@ import java.lang.annotation.*;
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.FIELD, ElementType.METHOD, ElementType.ANNOTATION_TYPE })
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 public @interface Field {
 
     /**
      * 映射document中的字段名称,若为空,则使用属性名称作为字段名称
+     *
      * @return 映射document中的字段名称
      */
     String name() default "";

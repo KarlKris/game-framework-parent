@@ -1,8 +1,11 @@
 package com.echo.ioc.processor;
 
 import cn.hutool.core.annotation.AnnotationUtil;
+import cn.hutool.core.util.ArrayUtil;
 import com.echo.common.util.StringUtils;
 import com.echo.ioc.anno.Bean;
+import com.echo.ioc.anno.ConfigurationProperties;
+import com.echo.ioc.anno.EnableConfigurationProperties;
 import com.echo.ioc.condition.ConditionEvaluator;
 import com.echo.ioc.condition.ConfigurationClassParser;
 import com.echo.ioc.condition.ConfigurationCondition.ConfigurationPhase;
@@ -10,7 +13,9 @@ import com.echo.ioc.core.ConfigurableBeanFactory;
 import com.echo.ioc.loader.BeanDefinition;
 import com.echo.ioc.loader.BeanDefinitionRegistry;
 import com.echo.ioc.loader.MethodBeanDefinition;
+import com.echo.ioc.loader.PropertiesBeanDefinition;
 import com.echo.ioc.util.BeanFactoryUtil;
+import com.echo.ioc.util.StandardClassMetadata;
 import com.echo.ioc.util.StandardMethodMetadata;
 
 import java.lang.reflect.Method;
@@ -53,6 +58,7 @@ public class ConfigurationClassPostProcessor implements BeanFactoryPostProcessor
                 }
                 continue;
             }
+            handleEnableConfigurationProperties(registry, definition);
             for (Method beanMethod : definition.getBeanMethods()) {
                 if (conditionEvaluator.shouldSkip(new StandardMethodMetadata(beanMethod), ConfigurationPhase.REGISTER_BEAN)) {
                     continue;
@@ -74,5 +80,23 @@ public class ConfigurationClassPostProcessor implements BeanFactoryPostProcessor
     @Override
     public int getOrder() {
         return Ordered.LOWEST_PRECEDENCE;
+    }
+
+    private void handleEnableConfigurationProperties(BeanDefinitionRegistry registry, BeanDefinition definition) {
+        EnableConfigurationProperties annotation = definition.getAnnotation(EnableConfigurationProperties.class);
+        if (annotation == null || ArrayUtil.isEmpty(annotation.value())) {
+            return;
+        }
+        for (Class<?> clazz : annotation.value()) {
+            StandardClassMetadata classMetadata = new StandardClassMetadata(clazz);
+            if (!classMetadata.hasAnnotation(ConfigurationProperties.class)) {
+                return;
+            }
+            String beanName = BeanFactoryUtil.generateBeanName(clazz);
+            if (registry.containsBeanDefinition(beanName)) {
+                return;
+            }
+            registry.registerBeanDefinition(new PropertiesBeanDefinition(beanName, clazz, classMetadata));
+        }
     }
 }

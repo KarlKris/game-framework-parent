@@ -2,20 +2,29 @@ package com.echo.entity;
 
 import com.echo.model.Address;
 import com.echo.model.Color;
+import com.echo.model.Info;
+import com.echo.model.Model;
+import com.echo.mongo.index.CompoundIndex;
+import com.echo.mongo.index.Indexed;
 import com.echo.mongo.mapping.anno.Document;
 import com.echo.mongo.mapping.anno.Field;
 import com.echo.mongo.mapping.anno.Id;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author: li-yuanwen
  */
 @Document
+@CompoundIndex(def = "{'n': 1, 'y': 1}")
 public class Apple {
 
     @Id
     private long id;
 
     @Field(name = "n")
+    @Indexed
     private String name;
 
     @Field(name = "c")
@@ -23,6 +32,15 @@ public class Apple {
 
     @Field(name = "a")
     private Address address;
+
+    @Field(name = "i")
+    private Map<Integer, Info> map;
+
+    @Field(name = "m")
+    private List<Model> list;
+
+    @Field(name = "y")
+    private int month;
 
     public long getId() {
         return id;
@@ -54,5 +72,29 @@ public class Apple {
 
     public void setAddress(Address address) {
         this.address = address;
+    }
+
+    public Map<Integer, Info> getMap() {
+        return map;
+    }
+
+    public void setMap(Map<Integer, Info> map) {
+        this.map = map;
+    }
+
+    public List<Model> getList() {
+        return list;
+    }
+
+    public void setList(List<Model> list) {
+        this.list = list;
+    }
+
+    public int getMonth() {
+        return month;
+    }
+
+    public void setMonth(int month) {
+        this.month = month;
     }
 }

@@ -24,16 +24,37 @@ public class Query {
 
     /** 查询条件 **/
     private final Map<String, Criteria> criteriaMap = new LinkedHashMap<>();
-    /** 跳过数 **/
+    /**
+     * 跳过数
+     **/
     private long skip;
-    /** 查询数 **/
+    /**
+     * 查询数
+     **/
     private int limit;
-    /** 强制使用索引 **/
+    /**
+     * 强制使用索引
+     **/
     private String hint;
-    /** field projection **/
+    /**
+     * field projection
+     **/
     private Fields fieldSpec;
 
-    public Query() {}
+
+    /**
+     * Static factory method to create a {@link Query} using the provided {@link Criteria}.
+     *
+     * @param criteria must not be {@literal null}.
+     * @return new instance of {@link Query}.
+     * @since 1.6
+     */
+    public static Query query(Criteria criteria) {
+        return new Query(criteria);
+    }
+
+    public Query() {
+    }
 
     public Query(Criteria criteria) {
         addCriteria(criteria);

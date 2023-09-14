@@ -3,26 +3,24 @@ package com.echo;
 import com.echo.common.convert.core.GenericConversionService;
 import com.echo.common.convert.support.DefaultConversionService;
 import com.echo.entity.Apple;
+import com.echo.model.*;
+import com.echo.mongo.MongoDatabaseFactory;
+import com.echo.mongo.SimpleMongoDatabaseFactory;
 import com.echo.mongo.convert.GenericMongoConverter;
 import com.echo.mongo.convert.MongoCustomConversions;
-import com.echo.mongo.core.EntityOperations;
 import com.echo.mongo.core.MongoTemplate;
-import com.echo.mongo.core.QueryOperations;
 import com.echo.mongo.mapping.MongoManagedTypes;
 import com.echo.mongo.mapping.MongoMappingContext;
 import com.echo.mongo.query.Criteria;
 import com.echo.mongo.query.Query;
-import com.mongodb.MongoClientSettings;
+import com.echo.mongo.query.Update;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.PojoCodecProvider;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author: li-yuanwen
@@ -33,11 +31,7 @@ public class MongoTests {
         String url = "mongodb://localhost:27017";
         MongoClient mongoClient = MongoClients.create(url);
         String dbName = "Fruit";
-        MongoDatabase database = mongoClient.getDatabase(dbName);
-        PojoCodecProvider pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
-        CodecRegistry codecRegistry = CodecRegistries.fromRegistries(MongoClientSettings.getDefaultCodecRegistry()
-                , CodecRegistries.fromProviders(pojoCodecProvider));
-
+        MongoDatabaseFactory mongoDatabaseFactory = new SimpleMongoDatabaseFactory(mongoClient, dbName);
 
         MongoCustomConversions conversions = new MongoCustomConversions(Collections.emptyList());
 
@@ -45,41 +39,106 @@ public class MongoTests {
         MongoManagedTypes managedTypes = MongoManagedTypes.from(Apple.class);
         mappingContext.setManagedTypes(managedTypes);
         mappingContext.initialize();
+        mappingContext.setAutoIndexCreation(true);
 
         GenericConversionService genericConversionService = new DefaultConversionService();
         GenericMongoConverter mongoConverter = new GenericMongoConverter(genericConversionService, mappingContext);
-        mongoConverter.setCodecRegistryProvider(() -> codecRegistry);
         mongoConverter.setCustomConversions(conversions);
-
-        EntityOperations entityOperations = new EntityOperations(mappingContext);
-
-        QueryOperations queryOperations = new QueryOperations(mongoConverter, mappingContext, genericConversionService);
-
-//        POJO数据映射
-//        MongoCollection<Apple> collection = database.getCollection("apple", Apple.class)
-//                .withCodecRegistry(codecRegistry);
-//
-//        Apple apple = new Apple();
-//        apple.setId(2);
-//        apple.setName("a2");
-//        apple.setColor(Color.RED);
-//        Address address = new Address();
-//        address.setName("GuangZhou");
-//        apple.setAddress(address);
-//        collection.insertOne(apple);
-
-        return new MongoTemplate(database, entityOperations, queryOperations, mongoConverter);
+        return new MongoTemplate(mongoDatabaseFactory, mongoConverter);
     }
 
 
     @Test
     public void queryTest() {
         MongoTemplate mongoTemplate = prepare();
-        Criteria criteria = Criteria.where("_id").is(1);
+        Criteria criteria = Criteria.where("_id").lte(8);
         Query query = new Query(criteria);
         List<Apple> list = mongoTemplate.find(query, Apple.class);
         System.out.println(list.size());
     }
 
+
+    @Test
+    public void insertTest() {
+        MongoTemplate mongoTemplate = prepare();
+
+        Apple apple = new Apple();
+        apple.setId(28);
+        apple.setMonth(10);
+        apple.setName("r12");
+        apple.setColor(Color.GREEN);
+        Address address = new Address();
+        address.setName("Xianyang");
+        apple.setAddress(address);
+
+        Map<Integer, Info> map = new HashMap<>(2);
+        A a = new A();
+        a.setId("a");
+        map.put(1, a);
+        B b = new B();
+        b.setId(2);
+        map.put(2, b);
+        apple.setMap(map);
+
+        List<Model> list = new ArrayList<>(1);
+        Model model = new Model();
+        model.setId(5);
+        list.add(model);
+        apple.setList(list);
+
+        mongoTemplate.insert(apple);
+    }
+
+    @Test
+    public void removeTest() {
+        MongoTemplate mongoTemplate = prepare();
+
+        Criteria criteria = Criteria.where("_id").lte(1);
+        Query query = new Query(criteria);
+        DeleteResult result = mongoTemplate.remove(query, Apple.class);
+        System.out.println(result.getDeletedCount());
+    }
+
+
+    @Test
+    public void updateTest() {
+        MongoTemplate mongoTemplate = prepare();
+        Criteria criteria = Criteria.where("_id").is(16);
+        Query query = new Query(criteria);
+
+        Update update = Update.update("n", "z16");
+        UpdateResult updateResult = mongoTemplate.updateFirst(query, update, Apple.class);
+        System.out.println(updateResult.getMatchedCount());
+    }
+
+    @Test
+    public void saveTest() {
+        MongoTemplate mongoTemplate = prepare();
+
+        Apple apple = new Apple();
+        apple.setId(18);
+        apple.setName("r13");
+        apple.setColor(Color.GREEN);
+        Address address = new Address();
+        address.setName("Xianyang");
+        apple.setAddress(address);
+
+        Map<Integer, Info> map = new HashMap<>(2);
+        A a = new A();
+        a.setId("a");
+        map.put(1, a);
+        B b = new B();
+        b.setId(2);
+        map.put(2, b);
+        apple.setMap(map);
+
+        List<Model> list = new ArrayList<>(1);
+        Model model = new Model();
+        model.setId(5);
+        list.add(model);
+        apple.setList(list);
+
+        mongoTemplate.save(apple);
+    }
 
 }

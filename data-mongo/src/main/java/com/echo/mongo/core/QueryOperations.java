@@ -1,24 +1,33 @@
 package com.echo.mongo.core;
 
 import com.echo.common.convert.core.ConversionService;
+import com.echo.common.util.ClassUtils;
 import com.echo.common.util.ObjectUtils;
 import com.echo.common.util.StringUtils;
+import com.echo.mongo.CodecRegistryProvider;
 import com.echo.mongo.convert.MongoConverter;
 import com.echo.mongo.convert.MongoJsonSchemaMapper;
 import com.echo.mongo.mapping.MongoMappingContext;
 import com.echo.mongo.mapping.MongoPersistentEntity;
 import com.echo.mongo.mapping.MongoPersistentProperty;
+import com.echo.mongo.query.BasicQuery;
 import com.echo.mongo.query.Query;
+import com.echo.mongo.query.UpdateDefinition;
 import com.echo.mongo.util.BsonUtils;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 集中了在操作真正准备好执行之前所需的常见操作
@@ -36,18 +45,130 @@ public class QueryOperations {
 
     private final ConversionService conversionService;
 
+    private final CodecRegistryProvider codecRegistryProvider;
 
-    public QueryOperations(MongoConverter converter, MongoMappingContext mappingContext, ConversionService conversionService) {
+
+    public QueryOperations(MongoConverter converter, MongoMappingContext mappingContext
+            , ConversionService conversionService, CodecRegistryProvider codecRegistryProvider) {
         this.converter = converter;
         this.schemaMapper = new MongoJsonSchemaMapper(mappingContext, converter);
         this.mappingContext = mappingContext;
         this.conversionService = conversionService;
+        this.codecRegistryProvider = codecRegistryProvider;
+    }
+
+    public MongoMappingContext getMappingContext() {
+        return mappingContext;
     }
 
     QueryContext createQueryContext(Query query) {
         return new QueryContext(query);
     }
 
+    InsertContext createInsertContext(Document source) {
+        return createInsertContext(MappedDocument.of(source));
+    }
+
+    InsertContext createInsertContext(MappedDocument mappedDocument) {
+        return new InsertContext(mappedDocument);
+    }
+
+    /**
+     * Create a new {@link DeleteContext} instance removing all matching documents.
+     *
+     * @param query must not be {@literal null}.
+     * @return new instance of {@link QueryContext}.
+     */
+    DeleteContext deleteQueryContext(Query query) {
+        return new DeleteContext(query);
+    }
+
+    /**
+     * Create a new {@link UpdateContext} instance affecting multiple documents.
+     *
+     * @param updateDefinition must not be {@literal null}.
+     * @param query            must not be {@literal null}.
+     * @param upsert           use {@literal true} to insert diff when no existing document found.
+     * @return new instance of {@link UpdateContext}.
+     */
+    UpdateContext updateContext(UpdateDefinition updateDefinition, Query query, boolean upsert) {
+        return new UpdateContext(updateDefinition, query, true, upsert);
+    }
+
+    /**
+     * Create a new {@link UpdateContext} instance affecting a single document.
+     *
+     * @param updateDefinition must not be {@literal null}.
+     * @param query            must not be {@literal null}.
+     * @param upsert           use {@literal true} to insert diff when no existing document found.
+     * @return new instance of {@link UpdateContext}.
+     */
+    UpdateContext updateSingleContext(UpdateDefinition updateDefinition, Query query, boolean upsert) {
+        return new UpdateContext(updateDefinition, query, false, upsert);
+    }
+
+    /**
+     * Create a new {@link UpdateContext} instance affecting a single document.
+     *
+     * @param updateDefinition must not be {@literal null}.
+     * @param query            must not be {@literal null}.
+     * @param upsert           use {@literal true} to insert diff when no existing document found.
+     * @return new instance of {@link UpdateContext}.
+     */
+    UpdateContext updateSingleContext(UpdateDefinition updateDefinition, Document query, boolean upsert) {
+        return new UpdateContext(updateDefinition, query, false, upsert);
+    }
+
+    /**
+     * @param replacement the {@link MappedDocument mapped replacement} document.
+     * @param upsert      use {@literal true} to insert diff when no existing document found.
+     * @return new instance of {@link UpdateContext}.
+     */
+    UpdateContext replaceSingleContext(MappedDocument replacement, boolean upsert) {
+        return new UpdateContext(replacement, upsert);
+    }
+
+    /**
+     * Maps fields used for sorting to the {@link MongoPersistentEntity}s properties. <br />
+     * Also converts properties to their {@code $meta} representation if present.
+     *
+     * @param sortObject
+     * @param entity
+     * @return
+     * @since 1.6
+     */
+    public Document getMappedSort(Document sortObject, MongoPersistentEntity entity) {
+
+        if (sortObject == null) {
+            throw new IllegalArgumentException("SortObject must not be null");
+        }
+
+        if (sortObject.isEmpty()) {
+            return BsonUtils.EMPTY_DOCUMENT;
+        }
+
+        return mapFieldsToPropertyNames(sortObject, entity);
+    }
+
+    private Document mapFieldsToPropertyNames(Document fields, MongoPersistentEntity entity) {
+
+        if (fields.isEmpty()) {
+            return BsonUtils.EMPTY_DOCUMENT;
+        }
+
+        Document target = new Document();
+
+        BsonUtils.asMap(fields).forEach((k, v) -> {
+
+            Field field = createPropertyField(entity, k, mappingContext);
+            if (field.getProperty() != null) {
+                return;
+            }
+            target.put(field.getMappedKey(), v);
+        });
+
+        return target;
+    }
 
     /**
      * Returns whether the given {@link Object} is a keyword, i.e. if it's a {@link Document} with a keyword key.
@@ -465,8 +586,6 @@ public class QueryOperations {
             return evaluateFields(persistentEntity);
         }
 
-
-
         private Document evaluateFields(MongoPersistentEntity persistentEntity) {
             Document fields = query.getFieldsObject();
 
@@ -479,8 +598,339 @@ public class QueryOperations {
             return evaluated;
         }
 
+    }
+
+    /**
+     * A {@link QueryContext} that encapsulates common tasks required when running {@literal delete} queries.
+     *
+     * @author Christoph Strobl
+     */
+    class DeleteContext extends QueryContext {
+
+        /**
+         * Crate a new {@link DeleteContext} instance.
+         *
+         * @param query can be {@literal null}.
+         */
+        DeleteContext(Query query) {
+            super(query);
+        }
+
+        /**
+         * Get the {@link DeleteOptions} applicable for the {@link Query}.
+         *
+         * @param domainType must not be {@literal null}.
+         * @return never {@literal null}.
+         */
+        DeleteOptions getDeleteOptions(Class<?> domainType) {
+            return getDeleteOptions(domainType, null);
+        }
+
+        /**
+         * Get the {@link DeleteOptions} applicable for the {@link Query}.
+         *
+         * @param domainType can be {@literal null}.
+         * @param callback   a callback to modify the generated options. Can be {@literal null}.
+         * @return
+         */
+        DeleteOptions getDeleteOptions(Class<?> domainType, Consumer<DeleteOptions> callback) {
+            DeleteOptions options = new DeleteOptions();
+            if (callback != null) {
+                callback.accept(options);
+            }
+            return options;
+        }
+    }
 
 
+    /**
+     * A {@link QueryContext} that encapsulates common tasks required when running {@literal updates}.
+     */
+    class UpdateContext extends QueryContext {
+
+        private final boolean multi;
+        private final boolean upsert;
+        private final UpdateDefinition update;
+        private final MappedDocument mappedDocument;
+
+        /**
+         * Create a new {@link UpdateContext} instance.
+         *
+         * @param update must not be {@literal null}.
+         * @param query  must not be {@literal null}.
+         * @param multi  use {@literal true} to update all matching documents.
+         * @param upsert use {@literal true} to insert a new document if none match.
+         */
+        UpdateContext(UpdateDefinition update, Document query, boolean multi, boolean upsert) {
+            this(update, new BasicQuery(query), multi, upsert);
+        }
+
+        /**
+         * Create a new {@link UpdateContext} instance.
+         *
+         * @param update must not be {@literal null}.
+         * @param query  can be {@literal null}.
+         * @param multi  use {@literal true} to update all matching documents.
+         * @param upsert use {@literal true} to insert a new document if none match.
+         */
+        UpdateContext(UpdateDefinition update, Query query, boolean multi, boolean upsert) {
+
+            super(query);
+
+            this.multi = multi;
+            this.upsert = upsert;
+            this.update = update;
+            this.mappedDocument = null;
+        }
+
+        UpdateContext(MappedDocument update, boolean upsert) {
+
+            super(new BasicQuery(BsonUtils.asDocument(update.getIdFilter())));
+            this.multi = false;
+            this.upsert = upsert;
+            this.mappedDocument = update;
+            this.update = null;
+        }
+
+        /**
+         * Get the {@link UpdateOptions} applicable for the {@link Query}.
+         *
+         * @param domainType must not be {@literal null}.
+         * @return never {@literal null}.
+         */
+        UpdateOptions getUpdateOptions(Class<?> domainType) {
+            return getUpdateOptions(domainType, null);
+        }
+
+        /**
+         * Get the {@link UpdateOptions} applicable for the {@link Query}.
+         *
+         * @param domainType can be {@literal null}.
+         * @param callback   a callback to modify the generated options. Can be {@literal null}.
+         * @return
+         */
+        UpdateOptions getUpdateOptions(Class<?> domainType, Consumer<UpdateOptions> callback) {
+
+            UpdateOptions options = new UpdateOptions();
+            options.upsert(upsert);
+
+            if (update != null && update.hasArrayFilters()) {
+                options
+                        .arrayFilters(update.getArrayFilters().stream().map(UpdateDefinition.ArrayFilter::asDocument).collect(Collectors.toList()));
+            }
+
+            HintFunction.from(getQuery().getHint()).ifPresent(codecRegistryProvider, options::hintString, options::hint);
+
+            if (callback != null) {
+                callback.accept(options);
+            }
+
+            return options;
+        }
+
+        /**
+         * Get the {@link ReplaceOptions} applicable for the {@link Query}.
+         *
+         * @param domainType must not be {@literal null}.
+         * @return never {@literal null}.
+         */
+        ReplaceOptions getReplaceOptions(Class<?> domainType) {
+            return getReplaceOptions(domainType, null);
+        }
+
+        /**
+         * Get the {@link ReplaceOptions} applicable for the {@link Query}.
+         *
+         * @param domainType can be {@literal null}.
+         * @param callback   a callback to modify the generated options. Can be {@literal null}.
+         * @return
+         */
+        ReplaceOptions getReplaceOptions(Class<?> domainType, Consumer<ReplaceOptions> callback) {
+
+            UpdateOptions updateOptions = getUpdateOptions(domainType);
+
+            ReplaceOptions options = new ReplaceOptions();
+            options.collation(updateOptions.getCollation());
+            options.upsert(updateOptions.isUpsert());
+
+            if (callback != null) {
+                callback.accept(options);
+            }
+
+            return options;
+        }
+
+        @Override
+        Document getMappedQuery(MongoPersistentEntity domainType) {
+
+            Document mappedQuery = super.getMappedQuery(domainType);
+
+            if (multi && update.isIsolated() && !mappedQuery.containsKey("$isolated")) {
+                mappedQuery.put("$isolated", 1);
+            }
+
+            return mappedQuery;
+        }
+
+//        Document applyShardKey(MongoPersistentEntity domainType, Document filter, Document existing) {
+//
+//            Document shardKeySource = existing != null ? existing
+//                    : mappedDocument != null ? mappedDocument.getDocument() : getMappedUpdate(domainType);
+//
+//            Document filterWithShardKey = new Document(filter);
+//            getMappedShardKeyFields(domainType)
+//                    .forEach(key -> filterWithShardKey.putIfAbsent(key, BsonUtils.resolveValue((Bson) shardKeySource, key)));
+//
+//            return filterWithShardKey;
+//        }
+
+//        boolean requiresShardKey(Document filter, MongoPersistentEntity domainType) {
+//
+//            return !multi && domainType != null && domainType.isSharded() && !shardedById(domainType)
+//                    && !filter.keySet().containsAll(getMappedShardKeyFields(domainType));
+//        }
+
+//        /**
+//         * @return {@literal true} if the {@link MongoPersistentEntity#getShardKey() shard key} is the entities
+//         *         {@literal id} property.
+//         * @since 3.0
+//         */
+//        private boolean shardedById(MongoPersistentEntity domainType) {
+//
+//            ShardKey shardKey = domainType.getShardKey();
+//            if (shardKey.size() != 1) {
+//                return false;
+//            }
+//
+//            String key = shardKey.getPropertyNames().iterator().next();
+//            if ("_id".equals(key)) {
+//                return true;
+//            }
+//
+//            MongoPersistentProperty idProperty = domainType.getIdProperty();
+//            return idProperty != null && idProperty.getName().equals(key);
+//        }
+//
+//        Set<String> getMappedShardKeyFields(MongoPersistentEntity entity) {
+//            return getMappedShardKey(entity).keySet();
+//        }
+//
+//        Document getMappedShardKey(MongoPersistentEntity entity) {
+//            return mappedShardKey.computeIfAbsent(entity.getType(),
+//                    key -> queryMapper.getMappedFields(entity.getShardKey().getDocument(), entity));
+//        }
+
+
+        /**
+         * Get the already mapped update {@link Document}.
+         *
+         * @param entity
+         * @return
+         */
+        Document getMappedUpdate(MongoPersistentEntity entity) {
+
+            if (update != null) {
+                return update instanceof MappedDocument.MappedUpdate ? update.getUpdateObject()
+                        : getMappedObject(update.getUpdateObject(), entity);
+            }
+            return mappedDocument.getDocument();
+        }
+
+        Document getMappedObject(Bson bson, MongoPersistentEntity entity) {
+            Document document = QueryOperations.this.getMappedObject(bson, entity);
+            boolean hasOperators = false;
+            boolean hasFields = false;
+
+            Document set = null;
+            for (String s : document.keySet()) {
+                if (s.startsWith("$")) {
+
+                    if (s.equals("$set")) {
+                        set = document.get(s, Document.class);
+                    }
+                    hasOperators = true;
+                } else {
+                    hasFields = true;
+                }
+            }
+
+            if (hasOperators && hasFields) {
+
+                Document updateObject = new Document();
+                Document fieldsToSet = set == null ? new Document() : set;
+
+                for (String s : document.keySet()) {
+                    if (s.startsWith("$")) {
+                        updateObject.put(s, document.get(s));
+                    } else {
+                        fieldsToSet.put(s, document.get(s));
+                    }
+                }
+                updateObject.put("$set", fieldsToSet);
+
+                return updateObject;
+            }
+            return document;
+        }
+
+
+        /**
+         * @return {@literal true} if all matching documents should be updated.
+         */
+        boolean isMulti() {
+            return multi;
+        }
+    }
+
+    /**
+     * {@link InsertContext} encapsulates common tasks required to interact with {@link Document} to be inserted.
+     *
+     * @since 3.4.3
+     */
+    class InsertContext {
+
+        private final MappedDocument source;
+
+        private InsertContext(MappedDocument source) {
+            this.source = source;
+        }
+
+        /**
+         * Prepare the {@literal _id} field. May generate a new {@literal id} value and convert it to the id properties
+         * {@link MongoPersistentProperty#getFieldType() target type}.
+         *
+         * @param type must not be {@literal null}.
+         * @param <T>
+         * @return the {@link MappedDocument} containing the changes.
+         * @see #prepareId(MongoPersistentEntity)
+         */
+        <T> MappedDocument prepareId(Class<T> type) {
+            return prepareId(mappingContext.getPersistentEntity(type));
+        }
+
+        /**
+         * Prepare the {@literal _id} field. May generate a new {@literal id} value and convert it to the id properties
+         * {@link MongoPersistentProperty#getFieldType() target type}.
+         *
+         * @param entity can be {@literal null}.
+         * @param <T>
+         * @return the {@link MappedDocument} containing the changes.
+         */
+        <T> MappedDocument prepareId(MongoPersistentEntity entity) {
+
+            if (entity == null || source.hasId()) {
+                return source;
+            }
+
+            MongoPersistentProperty idProperty = entity.getIdProperty();
+            if (idProperty != null
+                    && (idProperty.hasExplicitWriteTarget())) {
+                if (!ClassUtils.isAssignable(ObjectId.class, idProperty.getFieldType())) {
+                    source.updateId(convertId(new ObjectId(), idProperty.getFieldType()));
+                }
+            }
+            return source;
+        }
     }
 
     /**
@@ -767,5 +1217,26 @@ public class QueryOperations {
 
     }
 
+
+    /**
+     * Returns {@literal true} if the given {@link Document} is an update object that uses update operators.
+     *
+     * @param updateObj can be {@literal null}.
+     * @return {@literal true} if the given {@link Document} is an update object.
+     */
+    public static boolean isUpdateObject(Document updateObj) {
+
+        if (updateObj == null) {
+            return false;
+        }
+
+        for (String s : updateObj.keySet()) {
+            if (s.startsWith("$")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 }

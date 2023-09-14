@@ -3,6 +3,7 @@ package com.echo.mongo.mapping;
 
 import com.echo.common.convert.core.TypeDescriptor;
 import com.echo.common.util.StringUtils;
+import com.echo.common.util.TypeDescriptorUtils;
 import com.echo.mongo.mapping.anno.Id;
 import com.echo.mongo.mapping.anno.Transient;
 import org.bson.types.ObjectId;
@@ -44,7 +45,7 @@ public class MongoPersistentProperty {
     public MongoPersistentProperty(MongoPersistentEntity persistentEntity, Field field) {
         this.persistentEntity = persistentEntity;
         this.field = field;
-        this.descriptor = new TypeDescriptor(field);
+        this.descriptor = TypeDescriptorUtils.newInstance(field);
         if (hasExplicitFieldName()) {
             this.name = getAnnotatedFieldName();
         } else {
