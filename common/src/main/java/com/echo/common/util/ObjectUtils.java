@@ -12,6 +12,9 @@ import java.util.*;
  */
 public class ObjectUtils extends ObjectUtil {
 
+    private static final long LONG_ZERO = 0L;
+    private static final int INT_ZERO = 0;
+
     private static final int INITIAL_HASH = 7;
     private static final int MULTIPLIER = 31;
 
@@ -685,6 +688,28 @@ public class ObjectUtils extends ObjectUtil {
             newArray[i] = Array.get(source, i);
         }
         return newArray;
+    }
+
+
+    public static long checkPositiveOrZero(long l, String name) {
+        if (l < LONG_ZERO) {
+            throw new IllegalArgumentException(name + " : " + l + " (expected: >= 0)");
+        }
+        return l;
+    }
+
+    public static <T> T checkNotNull(T arg, String text) {
+        if (arg == null) {
+            throw new NullPointerException(text);
+        }
+        return arg;
+    }
+
+    public static int checkPositive(int i, String name) {
+        if (i <= INT_ZERO) {
+            throw new IllegalArgumentException(name + " : " + i + " (expected: > 0)");
+        }
+        return i;
     }
 
 }

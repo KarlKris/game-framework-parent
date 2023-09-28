@@ -11,11 +11,12 @@
     <packaging>jar</packaging>
 
     <name>network</name>
-    <description>游戏框架之网络通讯</description>
+    <description>游戏框架之网络协议</description>
 
     <properties>
         <netty.version>4.1.75.Final</netty.version>
         <netty-tcnative.version>2.0.51.Final</netty-tcnative.version>
+        <protostuff.version>1.8.0</protostuff.version>
     </properties>
 
     <dependencies>
@@ -27,6 +28,25 @@
         <dependency>
             <groupId>com.echo</groupId>
             <artifactId>common</artifactId>
+        </dependency>
+
+        <!-- 序列化框架 -->
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-core</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-runtime</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.moovel.proto/protostuff-runtime-proto -->
+        <dependency>
+            <groupId>com.moovel.proto</groupId>
+            <artifactId>protostuff-runtime-proto</artifactId>
+            <version>0.0.4</version>
         </dependency>
     </dependencies>
 

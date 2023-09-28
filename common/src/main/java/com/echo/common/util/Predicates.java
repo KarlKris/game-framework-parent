@@ -1,6 +1,5 @@
 package com.echo.common.util;
 
-import cn.hutool.core.lang.Assert;
 
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -53,7 +52,9 @@ public class Predicates {
      */
     public static <T> Predicate<T> negate(Predicate<T> predicate) {
 
-        Assert.notNull(predicate, "Predicate must not be null");
+        if (predicate == null) {
+            throw new IllegalArgumentException("Predicate must not be null");
+        }
         return predicate.negate();
     }
 

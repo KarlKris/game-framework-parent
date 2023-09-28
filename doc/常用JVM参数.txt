@@ -1,0 +1,54 @@
+// Java堆大小
+-Xms2048m
+-Xmx2048m
+// Java堆外内存
+-XX:PermSize=64M
+-XX:MaxPermSize=128M
+// GC输出
+-XX:+PrintGCDetails
+-XX:+PrintGCDateStamps
+-Xloggc:logs/jvm.log
+// JRF 监控相关
+-XX:+UnlockCommercialFeatures
+-XX:+FlightRecorder
+// VM 安全点相关
+-XX:+PrintGCApplicationStoppedTime
+-XX:+PrintGCApplicationConcurrentTime
+-XX:+PrintSafepointStatistics
+// 监控新生代晋升老年代阈值
+-XX:+PrintTenuringDistribution
+// MetaSpace（使用本地内存，JDK8初始大小是21M）
+-XX:MetaspaceSize=
+-XX:MaxMetaspaceSize=
+// 自适应新生代大小调整输出
+-XX:+PrintAdaptiveSizePolicy
+// 输出每次MinorGC中存活对象的大小
+-XX:+PrintAdaptiveSizePolicy
+// Survivor空间占比(默认50%)
+-XX:TargetSurvivorRatio=<percent>
+
+// 基准测试
+
+// 输出JIT编译器优化的函数
+-XX:+PrintCompilation
+// 输出方法内联
+-XX:+PrintInlining
+// 内联函数的大小设置(bytes)
+// (更大的方法体会导致代码内存占用更多，更少的热点方法会被缓存，最终的效果不一定好。)
+-XX:MaxInliningSize=<value>
+
+
+// Netty
+//严格检查内存池的每一个对象是否有泄露,调试时使用
+-Dio.netty.leakDetection.level=PARANOID
+Netty的内存泄漏检测分为四个级别：
+DISABLED - 完成禁止检测内存泄漏，这个是不推荐。
+SIMPLE - 如果buffer中出现1%的内存泄漏，打印错误日志，就是上面那样。但是日志是看不到详细在什么位置出现了内存泄漏。鉴于性能考虑，这个是在生产环境中默认使用。
+ADVANCED - 如果buffer的1%出现内存泄漏，打印错误，并且输出详细的内存泄漏信息。
+PARANOID - 这个和ADVANCED输出的内容是一样的，但它会对每一次请求的buffer做检查。很适用于调试和单元测试
+
+// 内存异常
+// 在OOM的时候自动dump内存快照出来
+-XX:+HeapDumpOnOutOfMemoryError
+// 把内存快照放到哪儿去
+-XX:HeapDumpPath=/opt/agents/java-dump/

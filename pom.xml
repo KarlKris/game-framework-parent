@@ -15,6 +15,7 @@
         <module>ioc</module>
         <module>autoconfigure</module>
         <module>data-mongo</module>
+        <module>engine</module>
         <!--        <module>hotswap-agent</module>-->
     </modules>
 
@@ -109,6 +110,18 @@
             <dependency>
                 <groupId>com.echo</groupId>
                 <artifactId>data-mongo</artifactId>
+                <version>${game.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.echo</groupId>
+                <artifactId>network</artifactId>
+                <version>${game.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.echo</groupId>
+                <artifactId>engine</artifactId>
                 <version>${game.version}</version>
                 <scope>compile</scope>
             </dependency>

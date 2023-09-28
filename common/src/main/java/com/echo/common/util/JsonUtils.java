@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
+import java.io.IOException;
+
 /**
  * Json 工具类
  */
@@ -15,7 +17,9 @@ public class JsonUtils {
 
     public static final TypeFactory TYPE_FACTORY = TypeFactory.defaultInstance();
 
-    /** Jackson ObjectMapper **/
+    /**
+     * Jackson ObjectMapper
+     **/
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     static {
@@ -31,13 +35,28 @@ public class JsonUtils {
         OBJECT_MAPPER.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
         OBJECT_MAPPER.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         //表示：在反序列化时，针对哪些目标对象中没有的属性jackson会直接忽略掉，就能反序列化成功
-        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
+        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
+
+    /**
+     * 将Json字符串转成Object
+     *
+     * @param json   json
+     * @param tClass 目标类型
+     * @param <T>
+     * @return /
+     * @throws JsonProcessingException
+     */
+    public static <T> T toObj(String json, Class<T> tClass) throws JsonProcessingException {
+        return OBJECT_MAPPER.readValue(json, tClass);
     }
 
 
     /**
      * Json字符串转Object
-     * @param content json
+     *
+     * @param content  json
      * @param javaType 目标对象
      * @return obj
      * @throws JsonProcessingException 转对象失败时抛出
@@ -52,6 +71,7 @@ public class JsonUtils {
 
     /**
      * 将obj转换成json字符串
+     *
      * @param source 对象
      * @return json
      * @throws JsonProcessingException 转json失败时抛出
@@ -60,4 +80,26 @@ public class JsonUtils {
         return OBJECT_MAPPER.writeValueAsString(source);
     }
 
+
+    /**
+     * 将obj转化成byte数组
+     *
+     * @param source 对象
+     * @return byte数据
+     * @throws JsonProcessingException
+     */
+    public static byte[] toBytes(Object source) throws JsonProcessingException {
+        return OBJECT_MAPPER.writeValueAsBytes(source);
+    }
+
+    /**
+     * 将byte数组转化成Object
+     *
+     * @param data 对象
+     * @return byte数据
+     * @throws JsonProcessingException
+     */
+    public static <T> T toObj(byte[] data, Class<T> tClass) throws IOException {
+        return OBJECT_MAPPER.readValue(data, tClass);
+    }
 }
