@@ -2,6 +2,7 @@ package com.echo.network.session;
 
 
 import com.echo.network.message.IMessage;
+import io.netty.channel.Channel;
 
 /**
  * 网络层连接对象接口
@@ -27,6 +28,13 @@ public interface ISession {
     String getIp();
 
     /**
+     * 获取连接对象channel
+     *
+     * @return channel
+     */
+    Channel getChannel();
+
+    /**
      * 传输消息
      *
      * @param message 消息
@@ -37,21 +45,6 @@ public interface ISession {
      * 关闭连接
      */
     void close();
-
-    /**
-     * 设置最近的传输的序列化方式
-     *
-     * @param serializeType 序列化方式
-     */
-    void setSerializeType(Byte serializeType);
-
-
-    /**
-     * 获取最近传输的序列化方式
-     *
-     * @return 序列化方式 or null
-     */
-    Byte getSerializeType();
 
     /**
      * 绑定身份标识

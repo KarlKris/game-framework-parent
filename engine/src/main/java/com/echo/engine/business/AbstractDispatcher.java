@@ -1,5 +1,6 @@
-package com.echo.engine.business.dispatch;
+package com.echo.engine.business;
 
+import com.echo.engine.boostrap.NettyServerBootstrap;
 import com.echo.network.exception.SocketException;
 import com.echo.network.message.IMessage;
 import com.echo.network.message.SocketProtocol;
@@ -7,6 +8,7 @@ import com.echo.network.modules.ErrorCode;
 import com.echo.network.modules.ErrorCodeModule;
 import com.echo.network.modules.ServerErrorCode;
 import com.echo.network.protocol.*;
+import com.echo.network.serialize.SerializeType;
 import com.echo.network.session.ISession;
 import com.echo.network.utils.SerializeUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +32,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
     }
 
     @Override
-    public void dispatch(M message, S session) {
+    public void dispatch(S session, M message) {
         if (!message.isRequest()) {
             if (log.isDebugEnabled()) {
                 log.debug("服务器收到非请求消息,忽略, ip:{}", session.getIp());
@@ -38,8 +40,8 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
             return;
         }
 
-        Executor executor = findExecutor(message, session);
-        executor.execute(() -> handleMessage(message, session));
+        Executor executor = findExecutor(session, message);
+        executor.execute(() -> handleMessage(session, message));
     }
 
 
@@ -50,7 +52,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param session session
      * @return Executor
      */
-    protected abstract Executor findExecutor(M message, S session);
+    protected abstract Executor findExecutor(S session, M message);
 
 
     /**
@@ -59,16 +61,8 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param session session
      * @param message message
      */
-    private void handleMessage(M message, S session) {
-        if (!beforeHandle(message, session)) {
-            return;
-        }
-
-        byte serializeType = message.getSerializeType();
-        if (!SerializeUtils.isSupported(serializeType)) {
-            if (log.isWarnEnabled()) {
-                log.warn("请求消息序列化类型[{}],找不到对应的序列化工具,忽略, ip:{}", serializeType, session.getIp());
-            }
+    private void handleMessage(S session, M message) {
+        if (!beforeHandle(session, message)) {
             return;
         }
 
@@ -81,23 +75,25 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
                     , message.getBody() == null ? 0 : message.getBody().length
                     , session.getIp());
         }
-        // 记录序列化/反序列化方式
-        session.setSerializeType(serializeType);
         ProtocolMethodInvocation invocation = protocolContext.getRequestInvocation(protocol);
         if (invocation == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("不支持协议号[{},{}], ip:{}"
-                        , protocol.getModule()
-                        , protocol.getMethodId()
-                        , session.getIp());
+            if (!forwardMessage(session, message)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("不支持协议号[{},{}], ip:{}"
+                            , protocol.getModule()
+                            , protocol.getMethodId()
+                            , session.getIp());
+                }
             }
             return;
         }
 
+        SerializeType serializeType = NettyServerBootstrap.SERIALIZE_TYPE;
+
         // 检查身份标识
-        final long identity = findIdentity(message, session);
+        final long identity = findIdentity(session, message);
         if (invocation.isIdentity() && identity == 0) {
-            response(message, session, errorSocketProtocol()
+            response(session, message, errorSocketProtocol()
                     , SerializeUtils.serialize(serializeType
                             , createExceptionBody(message.getSn(), protocol, ServerErrorCode.NO_IDENTITY)));
             return;
@@ -106,12 +102,12 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
         // 线程设置message消息
         // 将身份标识和请求序号设置进ThreadLocal,用于后续的rpc使用
         // identity可能为0,因为identity需要通过登陆或创建角色来绑定,此时的rpc协议请求应保证不会使用@Identity注解
-        RequestMessageInfo.setIdentity(identity);
-        RequestMessageInfo.setMessageSn(message.getSn());
+        LocalMessageContext.setIdentity(identity);
+        LocalMessageContext.setMessageSn(message.getSn());
 
         byte[] responseBody = null;
         try {
-            Object result = invokeMethod(message, session, invocation);
+            Object result = invokeMethod(session, message, serializeType, invocation);
             if (result != null) {
                 if (result instanceof Future) {
                     Future<?> future = (Future<?>) result;
@@ -134,12 +130,23 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
         } finally {
             // 同步协议或有响应体时返回
             if (invocation.isSyncMethod() || responseBody != null) {
-                response(message, session, protocol, responseBody);
+                response(session, message, protocol, responseBody);
             }
 
-            RequestMessageInfo.removeIdentity();
-            RequestMessageInfo.removeMessageSn();
+            LocalMessageContext.removeIdentity();
+            LocalMessageContext.removeMessageSn();
         }
+    }
+
+    /**
+     * 处理需要转发的信息,由服务器性质决定是否需要具有转发消息的功能
+     *
+     * @param session session
+     * @param message msg
+     * @return true 转发成功
+     */
+    protected boolean forwardMessage(S session, M message) {
+        return false;
     }
 
     /**
@@ -149,7 +156,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param message message
      * @return true 可以处理
      */
-    protected boolean beforeHandle(M message, S session) {
+    protected boolean beforeHandle(S session, M message) {
         return true;
     }
 
@@ -160,7 +167,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param message message
      * @return > 0 身份标识
      */
-    protected abstract long findIdentity(M message, S session);
+    protected abstract long findIdentity(S session, M message);
 
 
     /**
@@ -171,7 +178,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param invocation 调用方法上下文
      * @return method.invoke()
      */
-    private Object invokeMethod(M message, S session, ProtocolMethodInvocation invocation) {
+    private Object invokeMethod(S session, M message, SerializeType serializeType, ProtocolMethodInvocation invocation) {
         ProtocolMethod protocolMethod = invocation.getProtocolMethod();
         MethodParameter[] params = protocolMethod.getParams();
         Object[] args = new Object[params.length];
@@ -183,12 +190,12 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
             }
 
             if (parameters instanceof IdentityMethodParameter) {
-                args[i] = findIdentity(message, session);
+                args[i] = findIdentity(session, message);
                 continue;
             }
 
             if (parameters instanceof InBodyMethodParameter) {
-                args[i] = SerializeUtils.deserialize(message.getSerializeType()
+                args[i] = SerializeUtils.deserialize(serializeType
                         , message.getBody(), parameters.getParameterClass());
                 continue;
             }
@@ -209,7 +216,7 @@ public abstract class AbstractDispatcher<M extends IMessage, S extends ISession>
      * @param protocol     协议号
      * @param responseBody 协议号对应的消息体
      */
-    protected abstract void response(M message, S session, SocketProtocol protocol, byte[] responseBody);
+    protected abstract void response(S session, M message, SocketProtocol protocol, byte[] responseBody);
 
 
     private SocketProtocol errorSocketProtocol() {

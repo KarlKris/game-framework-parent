@@ -1,5 +1,6 @@
 package com.echo.engine.config;
 
+import com.echo.network.serialize.SerializeType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,7 +13,6 @@ import lombok.Getter;
 @Builder
 public class NettyServerSettings {
 
-
     /**
      * 端口号
      **/
@@ -22,9 +22,9 @@ public class NettyServerSettings {
      **/
     private int threadNum;
     /**
-     * worker线程数
+     * 业务线程数
      **/
-    private int handeThreadNum;
+    private int businessThreadNum;
     /**
      * TCP参数SO_BACKLOG
      **/
@@ -52,6 +52,11 @@ public class NettyServerSettings {
      **/
     private int bodyZipLength = 10 * 1024;
 
+    /**
+     * 消息序列化方式(0 Protobuf,1 Json)
+     **/
+    private byte serializeType = SerializeType.PROTOBUF.getType();
+
 
     public int getIOThreadNum() {
         if (threadNum == 0) {
@@ -60,11 +65,11 @@ public class NettyServerSettings {
         return threadNum;
     }
 
-    public int getHandleThreadNum() {
-        if (handeThreadNum == 0) {
+    public int getFinalBusinessThreadNum() {
+        if (businessThreadNum == 0) {
             return Runtime.getRuntime().availableProcessors() << 1;
         }
-        return handeThreadNum;
+        return businessThreadNum;
     }
 
     // ------------ ssl ---------------

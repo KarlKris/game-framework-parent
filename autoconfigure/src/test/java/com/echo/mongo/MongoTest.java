@@ -1,7 +1,6 @@
 package com.echo.mongo;
 
 import com.echo.ioc.context.AnnotationGenericApplicationContext;
-import com.echo.ioc.processor.ConfigurationPropertiesBeanFactoryPostProcessor;
 import com.echo.mongo.core.MongoTemplate;
 import com.echo.mongo.entity.Apple;
 import com.echo.mongo.query.Criteria;
@@ -18,7 +17,6 @@ public class MongoTest {
     @Test
     public void mongoTest() {
         AnnotationGenericApplicationContext context = new AnnotationGenericApplicationContext("com.echo");
-        context.addBeanFactoryPostProcessor(new ConfigurationPropertiesBeanFactoryPostProcessor());
         context.refresh();
 
         MongoTemplate mongoTemplate = context.getBean(MongoTemplate.class);

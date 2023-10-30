@@ -44,11 +44,7 @@ public class SerializeUtils {
         return SerializeType.valueOf(type) != null;
     }
 
-    private static Serializer getSerializerByType(byte type) {
-        SerializeType serializeType = SerializeType.valueOf(type);
-        if (serializeType == null) {
-            throw new IllegalArgumentException("not support serialize type: " + type);
-        }
+    private static Serializer getSerializerByType(SerializeType serializeType) {
         switch (serializeType) {
             case JSON: {
                 return getJsonSerializer();
@@ -57,21 +53,29 @@ public class SerializeUtils {
                 return getProtoStuffSerializer();
             }
             default: {
-                throw new IllegalArgumentException("not found serialize type single instance : " + type);
+                throw new IllegalArgumentException("not found serialize type single instance : " + serializeType.name());
             }
         }
     }
 
 
-    public static byte[] serialize(byte serializeType, Object data) {
+    public static byte[] serialize(SerializeType serializeType, Object data) {
         Serializer serializer = getSerializerByType(serializeType);
         return serializer.serialize(data);
     }
 
-    public static <T> T deserialize(byte serializeType, byte[] data, Class<T> tClass) {
+    public static <T> T deserialize(SerializeType serializeType, byte[] data, Class<T> tClass) {
         Serializer serializer = getSerializerByType(serializeType);
         return serializer.deserialize(data, tClass);
     }
 
+
+    public static boolean isProtoBuf(byte type) {
+        SerializeType serializeType = SerializeType.valueOf(type);
+        if (serializeType == null) {
+            return false;
+        }
+        return serializeType == SerializeType.PROTOBUF;
+    }
 
 }

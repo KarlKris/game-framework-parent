@@ -2,7 +2,6 @@ package com.echo.network.session;
 
 import com.echo.common.util.IpUtils;
 import com.echo.network.message.IMessage;
-import com.echo.network.protocol.ChannelAttributeKeys;
 import io.netty.channel.Channel;
 
 /**
@@ -50,13 +49,7 @@ public abstract class AbstractSession implements ISession {
     }
 
     @Override
-    public void setSerializeType(Byte serializeType) {
-        this.channel.attr(ChannelAttributeKeys.LAST_SERIALIZE_TYPE).set(serializeType);
+    public Channel getChannel() {
+        return channel;
     }
-
-    @Override
-    public Byte getSerializeType() {
-        return this.channel.attr(ChannelAttributeKeys.LAST_SERIALIZE_TYPE).get();
-    }
-
 }

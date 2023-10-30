@@ -13,6 +13,10 @@ import java.lang.reflect.Method;
 public class ProtocolMethod {
 
     /**
+     * 业务类型
+     **/
+    private final byte type;
+    /**
      * 命令
      **/
     private final SocketProtocol protocol;
@@ -33,19 +37,25 @@ public class ProtocolMethod {
      **/
     private Class<?> returnClz;
 
-    public ProtocolMethod(SocketProtocol protocol, Method method, MethodParameter[] params, boolean syncMethod) {
+    public ProtocolMethod(byte type, SocketProtocol protocol, Method method, MethodParameter[] params, boolean syncMethod) {
+        this.type = type;
         this.protocol = protocol;
         this.method = method;
         this.params = params;
         this.syncMethod = syncMethod;
     }
 
-    public ProtocolMethod(SocketProtocol protocol, Method method, MethodParameter[] params, boolean syncMethod, Class<?> returnClz) {
+    public ProtocolMethod(byte type, SocketProtocol protocol, Method method, MethodParameter[] params, boolean syncMethod, Class<?> returnClz) {
+        this.type = type;
         this.protocol = protocol;
         this.method = method;
         this.params = params;
         this.syncMethod = syncMethod;
         this.returnClz = returnClz;
+    }
+
+    public byte getType() {
+        return type;
     }
 
     public void setReturnClz(Class<?> clz) {

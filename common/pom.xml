@@ -50,6 +50,11 @@
             <artifactId>hutool-core</artifactId>
             <version>${hutool.version}</version>
         </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-dfa</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
 
         <!-- excel,xml表读取框架 -->
         <!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml -->

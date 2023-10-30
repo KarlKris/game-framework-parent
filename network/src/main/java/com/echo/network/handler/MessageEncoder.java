@@ -1,9 +1,6 @@
 package com.echo.network.handler;
 
-import com.echo.network.message.IMessage;
-import com.echo.network.message.InnerMessage;
-import com.echo.network.message.OuterMessage;
-import com.echo.network.message.ProtocolConstant;
+import com.echo.network.message.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -29,12 +26,13 @@ public class MessageEncoder extends MessageToByteEncoder<IMessage> {
             out.setInt(2, length);
 
             if (log.isDebugEnabled()) {
+                SocketProtocol protocol = msg.getProtocol();
                 log.debug("向连接[{}]发送外部消息,消息类型[{}],消息长度[{}],消息命令[{}-{}]"
                         , ctx.channel().remoteAddress()
                         , msg.getMessageType()
                         , length
-                        , msg.getProtocol().getModule()
-                        , msg.getProtocol().getMethodId());
+                        , protocol == null ? 0 : protocol.getModule()
+                        , protocol == null ? 0 : protocol.getMethodId());
             }
 
             return;
@@ -47,12 +45,13 @@ public class MessageEncoder extends MessageToByteEncoder<IMessage> {
             out.setInt(2, length);
 
             if (log.isDebugEnabled()) {
+                SocketProtocol protocol = msg.getProtocol();
                 log.debug("向连接[{}]发送内部消息,消息类型[{}],消息长度[{}],消息命令[{}-{}]"
                         , ctx.channel().remoteAddress()
                         , msg.getMessageType()
                         , length
-                        , msg.getProtocol().getModule()
-                        , msg.getProtocol().getMethodId());
+                        , protocol == null ? 0 : protocol.getModule()
+                        , protocol == null ? 0 : protocol.getMethodId());
             }
             return;
         }

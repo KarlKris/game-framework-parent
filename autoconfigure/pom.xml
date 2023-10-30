@@ -32,6 +32,11 @@
             <artifactId>data-mongo</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.echo</groupId>
+            <artifactId>engine</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!--test-->
         <dependency>

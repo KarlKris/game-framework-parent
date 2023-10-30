@@ -5,6 +5,7 @@ import cn.hutool.core.util.ObjectUtil;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -27,8 +28,14 @@ public class ObjectUtils extends ObjectUtil {
     private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
     /**
+     * Object方法
+     **/
+    public static final Set<Method> OBJECT_METHODS = new HashSet<>(Arrays.asList(Object.class.getDeclaredMethods()));
+
+    /**
      * Return whether the given throwable is a checked exception:
      * that is, neither a RuntimeException nor an Error.
+     *
      * @param ex the throwable to check
      * @return whether the throwable is a checked exception
      * @see java.lang.Exception

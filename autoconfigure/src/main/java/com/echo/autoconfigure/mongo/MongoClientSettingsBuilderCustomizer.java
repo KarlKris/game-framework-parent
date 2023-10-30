@@ -1,5 +1,6 @@
 package com.echo.autoconfigure.mongo;
 
+import com.echo.autoconfigure.SettingsBuilderCustomizer;
 import com.mongodb.MongoClientSettings;
 
 /**
@@ -7,9 +8,7 @@ import com.mongodb.MongoClientSettings;
  *
  * @author: li-yuanwen
  */
-public interface MongoClientSettingsBuilderCustomizer {
+public interface MongoClientSettingsBuilderCustomizer extends SettingsBuilderCustomizer<MongoClientSettings.Builder> {
 
-
-    void customize(MongoClientSettings.Builder clientSettingsBuilder);
 
 }

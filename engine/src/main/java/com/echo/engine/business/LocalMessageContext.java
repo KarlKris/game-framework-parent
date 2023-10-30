@@ -1,11 +1,11 @@
-package com.echo.engine.business.dispatch;
+package com.echo.engine.business;
 
 /**
  * 线程中执行的协议的相关信息
  *
  * @author: li-yuanwen
  */
-public class RequestMessageInfo {
+public class LocalMessageContext {
 
     /**
      * 玩家唯一标识

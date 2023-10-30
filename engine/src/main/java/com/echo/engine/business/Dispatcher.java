@@ -1,4 +1,4 @@
-package com.echo.engine.business.dispatch;
+package com.echo.engine.business;
 
 
 import com.echo.network.message.IMessage;
@@ -14,10 +14,10 @@ public interface Dispatcher<M extends IMessage, S extends ISession> {
     /**
      * 消息分发
      *
-     * @param message 消息
      * @param session session
+     * @param message 消息
      */
-    void dispatch(final M message, final S session);
+    void dispatch(final S session, final M message);
 
 
 }

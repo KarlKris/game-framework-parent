@@ -18,23 +18,19 @@ import java.util.concurrent.CompletableFuture;
  * @author li-yuanwen
  * @date 2021/12/10
  */
-public class ProtocolUtil {
+public class ProtocolUtils {
 
 
     /**
-     * 获取对象的module号
+     * 判断某个类是否是协议响应类
      *
-     * @param targetClass 对象
-     * @return module号
+     * @param targetClass 目标Class
+     * @return
      */
-    public static short getProtocolModuleByClass(Class<?> targetClass) {
-        SocketController socketController = AnnotationUtil.getAnnotation(targetClass, SocketController.class);
-        if (socketController == null) {
-            throw new IllegalArgumentException("类[" + targetClass.getName() + "]没有@SocketController注解");
-        }
-
-        return socketController.module();
+    public static boolean isProtocolResponseClazz(Class<?> targetClass) {
+        return AnnotationUtil.hasAnnotation(targetClass, SocketResponse.class);
     }
+
 
     /**
      * 解析出业务方法中的执行上下文
@@ -42,8 +38,7 @@ public class ProtocolUtil {
      * @param targetClass 目标Class
      * @return /
      */
-    public static List<ProtocolMethod> getMethodCtxBySocketCommand(Class<?> targetClass) {
-
+    public static List<ProtocolMethod> findProtocolMethodList(Class<?> targetClass) {
         SocketController socketController = AnnotationUtil.getAnnotation(targetClass, SocketController.class);
         if (socketController == null) {
             return Collections.emptyList();
@@ -51,6 +46,7 @@ public class ProtocolUtil {
 
         // 模块号
         short module = socketController.module();
+        byte serverType = socketController.serverType();
 
         List<ProtocolMethod> ctx = new LinkedList<>();
 
@@ -139,7 +135,7 @@ public class ProtocolUtil {
                 }
             }
 
-            ctx.add(new ProtocolMethod(new SocketProtocol(module, id), method, params, socketMethod.isSyncMethod(), returnClz));
+            ctx.add(new ProtocolMethod(serverType, new SocketProtocol(module, id), method, params, socketMethod.isSyncMethod(), returnClz));
         }
 
         return ctx;
@@ -151,7 +147,7 @@ public class ProtocolUtil {
      * @param targetClass 目标Class
      * @return /
      */
-    public static List<ProtocolMethod> getMethodCtxBySocketPush(Class<?> targetClass) {
+    public static List<ProtocolMethod> findProtocolPushMethodList(Class<?> targetClass) {
         SocketPush socketPush = AnnotationUtil.getAnnotation(targetClass, SocketPush.class);
         if (socketPush == null) {
             return Collections.emptyList();
@@ -164,6 +160,7 @@ public class ProtocolUtil {
 
         // 模块号
         short module = socketController.module();
+        byte type = socketController.serverType();
 
         List<ProtocolMethod> ctx = new LinkedList<>();
         for (Method method : targetClass.getDeclaredMethods()) {
@@ -215,7 +212,7 @@ public class ProtocolUtil {
                 throw new IllegalArgumentException("模块号[" + module + "]方法标识[" + id + "]的方法@InBody修饰的参数不可大于1");
             }
 
-            ctx.add(new ProtocolMethod(new SocketProtocol(module, id), method, params, true));
+            ctx.add(new ProtocolMethod(type, new SocketProtocol(module, id), method, params, true));
 
         }
 

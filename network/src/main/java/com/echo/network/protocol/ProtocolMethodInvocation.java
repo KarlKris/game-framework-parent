@@ -25,7 +25,7 @@ public class ProtocolMethodInvocation {
      **/
     private final boolean identity;
 
-    ProtocolMethodInvocation(Object target, ProtocolMethod protocolMethod) {
+    public ProtocolMethodInvocation(Object target, ProtocolMethod protocolMethod) {
         this.target = target;
         this.identity = protocolMethod.identity();
         this.protocolMethod = protocolMethod;

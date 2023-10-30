@@ -1,6 +1,7 @@
-package com.echo.engine.business.rpc;
+package com.echo.engine.rpc.core;
 
 import cn.hutool.core.util.ArrayUtil;
+import com.echo.engine.boostrap.NettyServerBootstrap;
 import com.echo.network.exception.SocketException;
 import com.echo.network.message.InnerMessage;
 import com.echo.network.message.SocketProtocol;
@@ -42,14 +43,14 @@ public class RpcInvocation extends Invocation {
         // 如果是返回错误码
         if (protocol.getModule() == ErrorCodeModule.MODULE) {
             // 解析错误码消息
-            ErrorCode errorCode = SerializeUtils.deserialize(message.getSerializeType(), message.getBody(), ErrorCode.class);
+            ErrorCode errorCode = SerializeUtils.deserialize(NettyServerBootstrap.SERIALIZE_TYPE, message.getBody(), ErrorCode.class);
             future.completeExceptionally(new SocketException(errorCode.getCode(), "请求远程服务异常"));
             return;
         }
         ProtocolMethod protocolMethod = protocolContext.getProtocol(protocol);
         Object result = null;
         if (ArrayUtil.isNotEmpty(message.getBody())) {
-            result = SerializeUtils.deserialize(message.getSerializeType(), message.getBody(), protocolMethod.getReturnClz());
+            result = SerializeUtils.deserialize(NettyServerBootstrap.SERIALIZE_TYPE, message.getBody(), protocolMethod.getReturnClz());
         }
         future.complete(result);
     }

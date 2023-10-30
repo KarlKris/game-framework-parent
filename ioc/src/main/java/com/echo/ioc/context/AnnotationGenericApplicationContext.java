@@ -1,10 +1,11 @@
 package com.echo.ioc.context;
 
-import com.echo.ioc.loader.BeanDefinitionLoader;
-import com.echo.ioc.loader.ClassBeanDefinitionScanner;
 import com.echo.ioc.core.ConfigurableBeanFactory;
 import com.echo.ioc.core.DefaultBeanFactory;
+import com.echo.ioc.loader.BeanDefinitionLoader;
+import com.echo.ioc.loader.ClassBeanDefinitionScanner;
 import com.echo.ioc.processor.ConfigurationClassPostProcessor;
+import com.echo.ioc.processor.ConfigurationPropertiesBeanFactoryPostProcessor;
 
 /**
  * 基于注解注册单例的ApplicationContext
@@ -21,6 +22,7 @@ public class AnnotationGenericApplicationContext extends AbstractApplicationCont
         this.beanDefinitionLoader = new ClassBeanDefinitionScanner(beanFactory, basePackages);
 
         addBeanFactoryPostProcessor(new ConfigurationClassPostProcessor());
+        addBeanFactoryPostProcessor(new ConfigurationPropertiesBeanFactoryPostProcessor());
     }
 
     @Override

@@ -1,8 +1,9 @@
-package com.echo.engine.business.dispatch;
+package com.echo.engine.business;
 
 import com.echo.network.message.IMessage;
 import com.echo.network.protocol.ProtocolContext;
 import com.echo.network.session.ISession;
+import com.echo.network.session.SessionContext;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +25,20 @@ public abstract class AbstractServerBusinessHandler<M extends IMessage, S extend
      **/
     protected final ProtocolContext protocolContext;
     /**
+     * session容器
+     **/
+    protected final SessionContext sessionContext;
+    /**
      * 协议分发处理器
      **/
     protected final Dispatcher<M, S> dispatcher;
 
-    public AbstractServerBusinessHandler(ProtocolContext protocolContext, Dispatcher<M, S> dispatcher) {
+
+    public AbstractServerBusinessHandler(ProtocolContext protocolContext, SessionContext sessionContext, Dispatcher<M, S> dispatcher) {
         this.protocolContext = protocolContext;
+        this.sessionContext = sessionContext;
         this.dispatcher = dispatcher;
     }
-
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

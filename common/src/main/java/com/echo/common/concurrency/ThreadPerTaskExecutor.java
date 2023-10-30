@@ -1,6 +1,7 @@
 package com.echo.common.concurrency;
 
-import com.li.common.utils.ObjectUtils;
+
+import com.echo.common.util.ObjectUtils;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;

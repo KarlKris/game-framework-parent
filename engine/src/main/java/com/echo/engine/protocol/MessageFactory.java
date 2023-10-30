@@ -5,6 +5,7 @@ import cn.hutool.core.util.ZipUtil;
 import com.echo.common.util.StringUtils;
 import com.echo.engine.config.NettyServerSettings;
 import com.echo.network.message.*;
+import com.echo.network.session.PlayerSession;
 
 /**
  * 消息工厂
@@ -30,20 +31,19 @@ public class MessageFactory {
      * @param sn            消息序号
      * @param type          消息类型
      * @param protocol      协议
-     * @param serializeType 序列化类型
      * @param body          消息体
      * @param ip            ip
      * @return 内部消息
      */
     public InnerMessage toInnerMessage(long sn, byte type, SocketProtocol protocol
-            , byte serializeType, byte[] body, long identity, String ip) {
+            , byte[] body, long identity, String ip) {
         boolean zip = false;
         if (ArrayUtil.isNotEmpty(body) && body.length > settings.getBodyZipLength()) {
             body = ZipUtil.gzip(body);
             zip = true;
         }
         byte[] ipBytes = StringUtils.hasLength(ip) ? ip.getBytes() : null;
-        InnerMessageHeader header = InnerMessageHeader.of(type, protocol, zip, serializeType, sn, identity, ipBytes);
+        InnerMessageHeader header = InnerMessageHeader.of(type, protocol, zip, sn, identity, ipBytes);
         return InnerMessage.of(header, body);
     }
 
@@ -59,14 +59,32 @@ public class MessageFactory {
      * @return 外部消息
      */
     public OuterMessage toOuterMessage(long sn, byte type, SocketProtocol protocol
-            , byte serializeType, byte[] body) {
+            , byte[] body) {
         boolean zip = false;
         if (ArrayUtil.isNotEmpty(body) && body.length > settings.getBodyZipLength()) {
             body = ZipUtil.gzip(body);
             zip = true;
         }
-        OuterMessageHeader header = OuterMessageHeader.of(sn, type, protocol, zip, serializeType);
+        OuterMessageHeader header = OuterMessageHeader.of(sn, type, protocol, zip);
         return OuterMessage.of(header, body);
+    }
+
+    public InnerMessage convertToRequestInnerMessage(PlayerSession playerSession, long sn, OuterMessage outerMessage) {
+        return toInnerMessage(sn
+                , outerMessage.getMessageType()
+                , outerMessage.getProtocol()
+                , outerMessage.getBody()
+                , playerSession.getIdentity()
+                , playerSession.getIp());
+    }
+
+
+    public OuterMessage convertToResponseOuterMessage(long sn, InnerMessage innerMessage) {
+        return toOuterMessage(sn
+                , innerMessage.getMessageType()
+                , innerMessage.getProtocol()
+                , innerMessage.getBody());
+
     }
 
 }

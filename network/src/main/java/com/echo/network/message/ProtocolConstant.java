@@ -37,60 +37,56 @@ public interface ProtocolConstant {
 
     /**
      * 消息类型对应于消息头#type(范围-128-127) 取1->127 即最高位符号均取0
-     * 8个字节=0 + 1位(消息体是否压缩 0未压缩 1已压缩) + 2位序列化方式 + 1位是否携带命令(0不携带命令,1携带命令) + 3位消息类型(1位类型(0 请求 1 响应) + 2位具体类型)
-     * 其中消息类型必须确认是否会携带命令,即携带命令和不携带命令的消息类型各可有7个,若后续不够,可扩展为short类型
+     * 8个字节=0 + 1位(消息体是否压缩 0未压缩 1已压缩) + 1位是否携带命令(0不携带命令,1携带命令) + 1位消息类型（0 请求 1 响应） + 4位具体类型
+     * 其中消息类型必须确认是否会携带命令
      */
 
     /**
-     * 携带命令 0 0 00 1 000
-     **/
-    byte COMMAND_MARK = 0x8;
-
-    /**
-     * 消息压缩 0 1 00 0 000
+     * 消息压缩 0 1 0 0 0000
      **/
     byte BODY_ZIP_MARK = 0x40;
 
     /**
-     * 具体消息类型掩码 0 0 00 1 111
+     * 携带命令 0 0 1 0 0000
      **/
-    byte MESSAGE_TYPE_MARK = 0xf;
+    byte COMMAND_MARK = 0x20;
 
     /**
-     * 序列化方式掩码 0 0 11 0 000
+     * 请求/响应掩码 0 0 0 1 0000
      **/
-    byte SERIALIZE_TYPE_MARK = 0x30;
+    byte REQ_RES_TYPE_MARK = 0x10;
 
     /**
-     * 请求/响应掩码 0 0 00 0 1 00
+     * 具体消息类型掩码 0 0 0 1 1111
      **/
-    byte REQ_RES_TYPE_MARK = 0x4;
+    byte MESSAGE_TYPE_MARK = 0x1f;
+
 
     // 具体消息类型
 
     // 不携带命令消息类型
 
     /**
-     * 心跳检测请求(不携带命令) 0 0 00 0 0 00
+     * 心跳检测请求(不携带命令) 0 0 0 0 0000
      **/
     byte HEART_BEAT_REQ = 0x0;
 
     /**
-     * 心跳检测响应(不携带命令) 0 0 00 0 1 00
+     * 心跳检测响应(不携带命令) 0 0 0 1 0000
      **/
-    byte HEART_BEAT_RES = 0x4;
+    byte HEART_BEAT_RES = 0x10;
 
     // 携带命令消息类型
 
     /**
-     * 业务请求(携带命令) 0 0 00 1 0 00
+     * 业务请求(携带命令) 0 0 1 0 0001
      **/
-    byte BUSINESS_REQ = 0x8;
+    byte BUSINESS_REQ = 0x21;
 
     /**
-     * 业务响应(携带命令) 0 0 00 1 1 00
+     * 业务响应(携带命令) 0 0 1 1 0001
      **/
-    byte BUSINESS_RES = 0xc;
+    byte BUSINESS_RES = 0x31;
 
 
     /**
@@ -111,27 +107,6 @@ public interface ProtocolConstant {
      */
     static boolean zip(byte type) {
         return (type &= BODY_ZIP_MARK) > 0;
-    }
-
-    /**
-     * 加上消息体序列化标识
-     *
-     * @param type          消息类型
-     * @param serializeType 序列化类型 Serializer.JSON/PROTO_STUFF
-     * @return /
-     */
-    static byte addSerializeType(byte type, byte serializeType) {
-        return type |= (serializeType << 4);
-    }
-
-    /**
-     * 从消息类型中获取序列化类型
-     *
-     * @param type 消息类型
-     * @return 序列化类型
-     */
-    static byte getSerializeType(byte type) {
-        return (byte) ((type & ProtocolConstant.SERIALIZE_TYPE_MARK) >> 4);
     }
 
     /**

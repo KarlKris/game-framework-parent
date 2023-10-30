@@ -14,7 +14,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SocketController {
 
-    /** 业务模块号 **/
+    /**
+     * 业务模块号
+     **/
     short module();
 
+    /**
+     * 业务逻辑所处的服务器类型
+     **/
+    byte serverType() default 0;
 }

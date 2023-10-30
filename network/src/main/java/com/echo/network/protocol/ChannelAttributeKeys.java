@@ -21,9 +21,4 @@ public interface ChannelAttributeKeys {
      **/
     AttributeKey<ISession> SESSION = AttributeKey.newInstance("session");
 
-    /**
-     * Channel上次使用的序列化/反序列化类型
-     **/
-    AttributeKey<Byte> LAST_SERIALIZE_TYPE = AttributeKey.newInstance("last_serialize_type");
-
 }

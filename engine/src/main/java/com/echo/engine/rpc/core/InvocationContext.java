@@ -1,11 +1,11 @@
-package com.echo.engine.business.rpc;
+package com.echo.engine.rpc.core;
 
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 远程调用消息Future容器
+ * 远程调用消息容器
  *
  * @author li-yuanwen
  * @date 2021/12/10

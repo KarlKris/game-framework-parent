@@ -2,7 +2,6 @@ package com.echo.network.message;
 
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ZipUtil;
-import com.echo.network.serialize.SerializeType;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -15,10 +14,10 @@ public class OuterMessage implements IMessage {
      * 服务器外部心跳消息包
      **/
     public static final OuterMessage HEART_BEAT_REQ = OuterMessage.of(
-            OuterMessageHeader.of(0, ProtocolConstant.HEART_BEAT_REQ, null, false, SerializeType.JSON.getType())
+            OuterMessageHeader.of(0, ProtocolConstant.HEART_BEAT_REQ, null, false)
             , null);
     public static final OuterMessage HEART_BEAT_RES = OuterMessage.of(
-            OuterMessageHeader.of(0, ProtocolConstant.HEART_BEAT_RES, null, false, SerializeType.JSON.getType())
+            OuterMessageHeader.of(0, ProtocolConstant.HEART_BEAT_RES, null, false)
             , null);
 
     /**
@@ -43,11 +42,6 @@ public class OuterMessage implements IMessage {
     @Override
     public SocketProtocol getProtocol() {
         return header.getSocketProtocol();
-    }
-
-    @Override
-    public byte getSerializeType() {
-        return header.getSerializeType();
     }
 
     @Override

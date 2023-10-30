@@ -1,7 +1,6 @@
 package com.echo.resources;
 
 import com.echo.ioc.context.AnnotationGenericApplicationContext;
-import com.echo.ioc.processor.ConfigurationPropertiesBeanFactoryPostProcessor;
 import org.junit.Test;
 
 /**
@@ -13,7 +12,6 @@ public class ResourcesTest {
     @Test
     public void resourceAutoConfigure() {
         AnnotationGenericApplicationContext context = new AnnotationGenericApplicationContext("com.echo");
-        context.addBeanFactoryPostProcessor(new ConfigurationPropertiesBeanFactoryPostProcessor());
         context.refresh();
 
         TestResourceInject bean = context.getBean(TestResourceInject.class);

@@ -1,6 +1,7 @@
 package com.echo.engine.handler;
 
-import com.echo.engine.business.dispatch.AbstractServerBusinessHandler;
+import com.echo.engine.boostrap.NettyServerBootstrap;
+import com.echo.engine.business.AbstractServerBusinessHandler;
 import com.echo.engine.config.NettyServerSettings;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -9,7 +10,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLEngine;
@@ -25,25 +25,33 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class NettyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-
     /**
-     * 配置信息
+     * NettyServerBootstrap
      **/
-    private NettyServerSettings settings;
+    private final NettyServerBootstrap bootstrap;
     /**
      * 协议处理器
      **/
-    private AbstractServerBusinessHandler<?, ?> businessHandler;
+    private final AbstractServerBusinessHandler<?, ?> businessHandler;
 
-
-    /**
-     * handler线程池
-     **/
-    private EventExecutorGroup eventExecutorGroup;
     /**
      * sslContext
      **/
-    private SslContext sslContext;
+    private final SslContext sslContext;
+
+    public NettyServerChannelInitializer(NettyServerBootstrap bootstrap, AbstractServerBusinessHandler<?, ?> businessHandler) throws SSLException {
+        this.bootstrap = bootstrap;
+        this.businessHandler = businessHandler;
+        this.sslContext = tryInitSslContext();
+    }
+
+
+    private SslContext tryInitSslContext() throws SSLException {
+        if (bootstrap.getSettings().getSslSettings().getProtocol() == null) {
+            return null;
+        }
+        return newServerSslContext(bootstrap.getSettings().getSslSettings());
+    }
 
 
     @Override
@@ -53,20 +61,20 @@ public class NettyServerChannelInitializer extends ChannelInitializer<SocketChan
         // SSL 认证
         if (sslContext != null) {
             SSLEngine sslEngine = sslContext.newEngine(ch.alloc());
-            pipeline.addFirst(eventExecutorGroup, SslHandler.class.getSimpleName(), new SslHandler(sslEngine));
+            pipeline.addFirst(SslHandler.class.getSimpleName(), new SslHandler(sslEngine));
         }
 
         //TODO 过滤器,防火墙
 
         // 协议选择
-        pipeline.addLast(eventExecutorGroup, ProtocolSelectorHandler.class.getSimpleName()
-                , new ProtocolSelectorHandler());
+        pipeline.addLast(ProtocolSelectorHandler.class.getSimpleName()
+                , new ProtocolSelectorHandler(bootstrap.getHeartBeatHandler(), bootstrap.getMessageEncoder()));
 
         // 服务端心跳检测
-        pipeline.addLast(eventExecutorGroup, IdleStateHandler.class.getSimpleName(), newIdleStateHandler());
+        pipeline.addLast(IdleStateHandler.class.getSimpleName(), newIdleStateHandler());
 
         // 业务处理
-        pipeline.addLast(eventExecutorGroup, AbstractServerBusinessHandler.HANDLER_NAME, businessHandler);
+        pipeline.addLast(AbstractServerBusinessHandler.HANDLER_NAME, businessHandler);
     }
 
 
@@ -82,6 +90,6 @@ public class NettyServerChannelInitializer extends ChannelInitializer<SocketChan
     }
 
     private IdleStateHandler newIdleStateHandler() {
-        return new IdleStateHandler(settings.getServerReaderIdleTime(), 0, 0, TimeUnit.SECONDS);
+        return new IdleStateHandler(bootstrap.getSettings().getServerReaderIdleTime(), 0, 0, TimeUnit.SECONDS);
     }
 }

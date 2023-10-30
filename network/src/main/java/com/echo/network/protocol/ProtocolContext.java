@@ -29,13 +29,12 @@ public class ProtocolContext {
      **/
     private final Map<Method, ProtocolMethod> pushProtocols = new HashMap<>();
 
-
     public void registerProtocol(ProtocolMethod protocolMethod) {
         protocols.put(protocolMethod.getProtocol(), protocolMethod);
     }
 
-    public void registerRequestProtocol(ProtocolMethodInvocation invocation) {
-        requestProtocols.put(invocation.getProtocolMethod().getProtocol(), invocation);
+    public boolean registerRequestProtocol(ProtocolMethodInvocation invocation) {
+        return requestProtocols.putIfAbsent(invocation.getProtocolMethod().getProtocol(), invocation) == null;
     }
 
     public void registerPushProtocol(ProtocolMethod protocolMethod) {

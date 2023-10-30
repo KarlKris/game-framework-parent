@@ -28,13 +28,6 @@ public interface IMessage {
     SocketProtocol getProtocol();
 
     /**
-     * 获取消息体解析类型
-     *
-     * @return 消息体解析类型
-     */
-    byte getSerializeType();
-
-    /**
      * 获取消息体
      *
      * @return 消息体二进制数组

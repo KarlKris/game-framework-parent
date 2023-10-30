@@ -1,8 +1,20 @@
 package com.echo.engine.boostrap;
 
+import com.echo.common.concurrency.IdentityRunnableLoopGroup;
 import com.echo.common.util.IpUtils;
 import com.echo.engine.config.NettyServerSettings;
 import com.echo.engine.handler.NettyServerChannelInitializer;
+import com.echo.engine.protocol.MessageFactory;
+import com.echo.engine.rpc.core.GenericRemoteLocalServerSeekOperation;
+import com.echo.engine.rpc.core.InvocationContext;
+import com.echo.engine.rpc.core.RemoteServerSeekOperation;
+import com.echo.engine.rpc.push.PushOperation;
+import com.echo.network.handler.HeartBeatHandler;
+import com.echo.network.handler.MessageDecoder;
+import com.echo.network.handler.MessageEncoder;
+import com.echo.network.protocol.ProtocolContext;
+import com.echo.network.serialize.SerializeType;
+import com.echo.network.session.SessionContext;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -11,10 +23,10 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.net.ssl.SSLException;
 
 /**
  * netty server boostrap
@@ -24,6 +36,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NettyServerBootstrap {
 
+    /**
+     * 消息序列方式
+     **/
+    public static SerializeType SERIALIZE_TYPE = SerializeType.PROTOBUF;
 
     /**
      * 配置信息
@@ -32,8 +48,44 @@ public class NettyServerBootstrap {
     /**
      * ChannelInitializer
      **/
-    private final NettyServerChannelInitializer initializer;
+    private NettyServerChannelInitializer initializer;
 
+    /**
+     * 心跳检测
+     **/
+    private final HeartBeatHandler heartBeatHandler = new HeartBeatHandler(true);
+
+    /**
+     * 消息工厂
+     **/
+    private final MessageFactory messageFactory;
+
+    private final MessageEncoder messageEncoder = new MessageEncoder();
+
+    // --------------------------------------------------------------
+
+    /**
+     * 协议容器
+     **/
+    private final ProtocolContext protocolContext = new ProtocolContext();
+    /**
+     * rpc调用消息容器
+     **/
+    private final InvocationContext invocationContext = new InvocationContext();
+    /**
+     * session容器
+     */
+    private final SessionContext sessionContext = new SessionContext();
+    /**
+     * 推送服务
+     */
+    private final PushOperation pushOperation;
+    /**
+     * 服务发现
+     **/
+    private final RemoteServerSeekOperation remoteServerSeekOperation;
+
+    // --------------------------------------------------------------
 
     /**
      * Reactor Acceptor线程
@@ -44,21 +96,40 @@ public class NettyServerBootstrap {
      **/
     private EventLoopGroup workers;
     /**
-     * handler线程池
+     * 业务线程池
      **/
-    private EventExecutorGroup eventExecutorGroup;
+    private IdentityRunnableLoopGroup businessLoopGroup;
+    /**
+     * 客户端线程池
+     **/
+    private EventLoopGroup clientEventLoopGroup;
     /**
      * 服务端channel
      **/
     private Channel channel;
 
-    public NettyServerBootstrap(NettyServerSettings settings, NettyServerChannelInitializer initializer) {
+    public NettyServerBootstrap(NettyServerSettings settings) throws SSLException {
         this.settings = settings;
-        this.initializer = initializer;
+        this.messageFactory = new MessageFactory(settings);
+        this.pushOperation = new PushOperation(sessionContext, messageFactory);
+        this.remoteServerSeekOperation = new GenericRemoteLocalServerSeekOperation(this);
+        SerializeType serializeType = SerializeType.valueOf(settings.getSerializeType());
+        if (serializeType == null) {
+            throw new RuntimeException("invalid serialize type: " + settings.getSerializeType());
+        }
+        SERIALIZE_TYPE = serializeType;
     }
 
 
+    public void setInitializer(NettyServerChannelInitializer initializer) {
+        this.initializer = initializer;
+    }
+
     public void startServer() throws InterruptedException {
+        if (initializer == null) {
+            throw new RuntimeException("not set NettyServerChannelInitializer");
+        }
+
         initEventLoop();
 
         ServerBootstrap serverBootstrap = new ServerBootstrap();
@@ -94,9 +165,8 @@ public class NettyServerBootstrap {
         this.channel.close();
         this.boss.shutdownGracefully();
         this.workers.shutdownGracefully();
-        if (eventExecutorGroup != null) {
-            this.eventExecutorGroup.shutdownGracefully();
-        }
+        this.clientEventLoopGroup.shutdownGracefully();
+        this.businessLoopGroup.shutdownGracefully();
         log.warn("Netty 服务器[{}]正常关闭", settings.getPort());
     }
 
@@ -105,8 +175,8 @@ public class NettyServerBootstrap {
         // 使用Reactor主从多线程模型,一个Acceptor连接线程,I/O读写线程池,Handler线程池(NettyServerChannelInitializer)
         this.boss = createLoopGroup(1, "Netty-Acceptor-Thread");
         this.workers = createLoopGroup(settings.getIOThreadNum(), "Netty-IO-Thread");
-        this.eventExecutorGroup = new DefaultEventExecutorGroup(settings.getHandleThreadNum()
-                , new DefaultThreadFactory("Netty-Handler-Thread", true));
+        this.businessLoopGroup = new IdentityRunnableLoopGroup(settings.getFinalBusinessThreadNum());
+        this.clientEventLoopGroup = createLoopGroup(Runtime.getRuntime().availableProcessors(), "Netty-Client-Thread");
     }
 
     private boolean useEpoll() {
@@ -118,6 +188,63 @@ public class NettyServerBootstrap {
             return new EpollEventLoopGroup(threadNum, new DefaultThreadFactory(threadPrefix, true));
         }
         return new NioEventLoopGroup(threadNum, new DefaultThreadFactory(threadPrefix, true));
+    }
+
+    public NettyServerSettings getSettings() {
+        return settings;
+    }
+
+    public HeartBeatHandler getHeartBeatHandler() {
+        return heartBeatHandler;
+    }
+
+    public MessageFactory getMessageFactory() {
+        return messageFactory;
+    }
+
+    public MessageEncoder getMessageEncoder() {
+        return messageEncoder;
+    }
+
+    public ProtocolContext getProtocolContext() {
+        return protocolContext;
+    }
+
+    public InvocationContext getInvocationContext() {
+        return invocationContext;
+    }
+
+    public SessionContext getSessionContext() {
+        return sessionContext;
+    }
+
+    public PushOperation getPushOperation() {
+        return pushOperation;
+    }
+
+    public RemoteServerSeekOperation getRemoteServerSeekOperation() {
+        return remoteServerSeekOperation;
+    }
+
+    public EventLoopGroup getClientEventLoopGroup() {
+        return clientEventLoopGroup;
+    }
+
+    public IdentityRunnableLoopGroup getBusinessLoopGroup() {
+        return businessLoopGroup;
+    }
+
+    /**
+     * 消息最大长度 10M
+     **/
+    final static int DEFAULT_MAX_MESSAGE_CONTENT_LENGTH = 1024 * 1024 * 10;
+
+    public static MessageDecoder messageDecoder() {
+        return messageDecoder(DEFAULT_MAX_MESSAGE_CONTENT_LENGTH);
+    }
+
+    public static MessageDecoder messageDecoder(int maxMessageLength) {
+        return new MessageDecoder(maxMessageLength, 2, 4);
     }
 
 }

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author: li-yuanwen
  */
-public class IdentityThreadFactoryExecutor implements Executor {
+public class IdentityRunnableLoopGroup implements Executor {
 
     /**
      * 30分钟
@@ -27,19 +27,19 @@ public class IdentityThreadFactoryExecutor implements Executor {
 
     private final ConcurrentHashMap<Object, TimeRunnableSource> identityExecutors = new ConcurrentHashMap<>();
 
-    public IdentityThreadFactoryExecutor() {
+    public IdentityRunnableLoopGroup() {
         this(Runtime.getRuntime().availableProcessors() << 1);
     }
 
-    public IdentityThreadFactoryExecutor(int threadNum) {
+    public IdentityRunnableLoopGroup(int threadNum) {
         this(new MultiThreadRunnableLoopGroup(threadNum, new NamedThreadFactory("Identity-Thread", false)));
     }
 
-    public IdentityThreadFactoryExecutor(RunnableLoopGroup group) {
+    public IdentityRunnableLoopGroup(RunnableLoopGroup group) {
         this(group, true);
     }
 
-    public IdentityThreadFactoryExecutor(RunnableLoopGroup group, boolean scheduleClear) {
+    public IdentityRunnableLoopGroup(RunnableLoopGroup group, boolean scheduleClear) {
         this.group = group;
         if (scheduleClear) {
             // 2小时清理一次

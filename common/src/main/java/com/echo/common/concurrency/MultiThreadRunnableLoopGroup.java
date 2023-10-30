@@ -1,7 +1,7 @@
 package com.echo.common.concurrency;
 
 import cn.hutool.core.thread.NamedThreadFactory;
-import com.li.common.utils.ObjectUtils;
+import com.echo.common.util.ObjectUtils;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;

@@ -1,6 +1,7 @@
 package com.echo.engine.handler;
 
-import com.echo.engine.business.dispatch.AbstractServerBusinessHandler;
+import com.echo.engine.boostrap.NettyServerBootstrap;
+import com.echo.engine.business.AbstractServerBusinessHandler;
 import com.echo.network.handler.HeartBeatHandler;
 import com.echo.network.handler.MessageDecoder;
 import com.echo.network.handler.MessageEncoder;
@@ -17,7 +18,6 @@ import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketSe
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.ReferenceCountUtil;
-import io.netty.util.concurrent.EventExecutorGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -39,46 +39,35 @@ public class ProtocolSelectorHandler extends ByteToMessageDecoder {
      **/
     final static short PROTOCOL_BYTES_SIZE = Short.BYTES;
 
-    /**
-     * 消息最大长度 10M
-     **/
-    final static int DEFAULT_MAX_MESSAGE_CONTENT_LENGTH = 1024 * 1024 * 10;
 
-    private final int maxMessageContentLength;
-    /**
-     * handler线程池
-     **/
-    private final EventExecutorGroup eventExecutorGroup;
     /**
      * 心跳
      **/
     private final HeartBeatHandler heartBeatHandler;
 
     public ProtocolSelectorHandler() {
-        this(DEFAULT_MAX_MESSAGE_CONTENT_LENGTH, null, null);
+        this(null);
     }
 
-    public ProtocolSelectorHandler(EventExecutorGroup eventExecutorGroup) {
-        this(DEFAULT_MAX_MESSAGE_CONTENT_LENGTH, eventExecutorGroup, null);
+
+    public ProtocolSelectorHandler(HeartBeatHandler heartBeatHandler) {
+        this(heartBeatHandler, new MessageEncoder());
     }
 
-    public ProtocolSelectorHandler(int maxMessageContentLength, EventExecutorGroup eventExecutorGroup, HeartBeatHandler heartBeatHandler) {
-        this.maxMessageContentLength = maxMessageContentLength;
-        this.eventExecutorGroup = eventExecutorGroup;
+    public ProtocolSelectorHandler(HeartBeatHandler heartBeatHandler, MessageEncoder messageEncoder) {
         this.heartBeatHandler = heartBeatHandler;
-
-        this.messageEncoder = new MessageEncoder();
+        this.messageEncoder = messageEncoder;
         this.webSocketEncoder = new WebSocketEncoder(messageEncoder);
     }
 
     /**
      * messageEncoder
      **/
-    private MessageEncoder messageEncoder;
+    private final MessageEncoder messageEncoder;
     /**
      * webSocketEncoder
      **/
-    private WebSocketEncoder webSocketEncoder;
+    private final WebSocketEncoder webSocketEncoder;
 
 
     @Override
@@ -102,25 +91,25 @@ public class ProtocolSelectorHandler extends ByteToMessageDecoder {
             String idleStateHandlerName = IdleStateHandler.class.getSimpleName();
 
             // HttpServerCodec：将请求和应答消息解码为HTTP消息
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , HttpServerCodec.class.getSimpleName(), new HttpServerCodec());
 
             // HttpObjectAggregator：将HTTP消息的多个部分合成一条完整的HTTP消息
             // netty是基于分段请求的，HttpObjectAggregator的作用是将请求分段再聚合,参数是聚合字节的最大长度
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , HttpObjectAggregator.class.getSimpleName(), new HttpObjectAggregator(1024 * 1024 * 10));
 
             // 主要用于处理大数据流，
             // 比如一个1G大小的文件如果你直接传输肯定会撑暴jvm内存的,增加之后就不用考虑这个问题了
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , ChunkedWriteHandler.class.getSimpleName(), new ChunkedWriteHandler());
 
             // 针对websocket帧进行聚合解码
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , WebSocketFrameAggregator.class.getSimpleName(), new WebSocketFrameAggregator(1024 * 1024 * 10));
 
             // websocket数据压缩
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , WebSocketServerCompressionHandler.class.getSimpleName(), new WebSocketServerCompressionHandler());
 
             // websocket连接处理
@@ -129,20 +118,20 @@ public class ProtocolSelectorHandler extends ByteToMessageDecoder {
                     .websocketPath("/")
                     .handleCloseFrames(true)
                     .build();
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , WebSocketServerProtocolHandler.class.getSimpleName(), new WebSocketServerProtocolHandler(config));
 
             // 编解码器
             WebSocketDecoder webSocketDecoder = new WebSocketDecoder();
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , WebSocketEncoder.class.getSimpleName(), this.webSocketEncoder);
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , WebSocketDecoder.class.getSimpleName(), webSocketDecoder);
 
 
             if (heartBeatHandler != null) {
                 // 心跳
-                ctx.pipeline().addBefore(eventExecutorGroup, AbstractServerBusinessHandler.HANDLER_NAME
+                ctx.pipeline().addBefore(AbstractServerBusinessHandler.HANDLER_NAME
                         , HeartBeatHandler.class.getSimpleName(), this.heartBeatHandler);
             }
 
@@ -155,14 +144,14 @@ public class ProtocolSelectorHandler extends ByteToMessageDecoder {
             String idleStateHandlerName = IdleStateHandler.class.getSimpleName();
 
             // 编解码器
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
+            ctx.pipeline().addBefore(idleStateHandlerName
                     , MessageEncoder.class.getSimpleName(), this.messageEncoder);
-            ctx.pipeline().addBefore(eventExecutorGroup, idleStateHandlerName
-                    , MessageDecoder.class.getSimpleName(), messageDecoder(maxMessageContentLength));
+            ctx.pipeline().addBefore(idleStateHandlerName
+                    , MessageDecoder.class.getSimpleName(), messageDecoder());
 
             if (heartBeatHandler != null) {
                 // 心跳
-                ctx.pipeline().addBefore(eventExecutorGroup, AbstractServerBusinessHandler.HANDLER_NAME
+                ctx.pipeline().addBefore(AbstractServerBusinessHandler.HANDLER_NAME
                         , HeartBeatHandler.class.getSimpleName(), this.heartBeatHandler);
             }
 
@@ -183,8 +172,8 @@ public class ProtocolSelectorHandler extends ByteToMessageDecoder {
     }
 
 
-    private MessageDecoder messageDecoder(int maxMessageLength) {
-        return new MessageDecoder(maxMessageLength, 2, 4);
+    private MessageDecoder messageDecoder() {
+        return NettyServerBootstrap.messageDecoder();
     }
 
 }
