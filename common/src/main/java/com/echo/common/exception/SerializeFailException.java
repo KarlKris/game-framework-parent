@@ -1,4 +1,4 @@
-package com.echo.network.exception;
+package com.echo.common.exception;
 
 
 /**

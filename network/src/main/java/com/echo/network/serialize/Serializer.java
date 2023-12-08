@@ -1,7 +1,7 @@
 package com.echo.network.serialize;
 
 
-import com.echo.network.exception.SerializeFailException;
+import com.echo.common.exception.SerializeFailException;
 
 /**
  * @author li-yuanwen

@@ -1,26 +1,47 @@
 package com.echo.ioc.context;
 
-import com.echo.ioc.processor.*;
 import com.echo.ioc.core.ConfigurableBeanFactory;
+import com.echo.ioc.processor.ApplicationContextAwareProcessor;
+import com.echo.ioc.processor.BeanFactoryPostProcessor;
+import com.echo.ioc.processor.BeanPostProcessor;
+import com.echo.ioc.processor.Ordered;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * ApplicationContext 基类
  */
 public abstract class AbstractApplicationContext implements ApplicationContext {
 
-    /** 容器后置处理器 **/
-    private final List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
+    private final Object startupShutdownMonitor = new Object();
+    private Thread shutdownHook;
+
+    /**
+     * 容器后置处理器
+     **/
+    private final List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new CopyOnWriteArrayList<>();
+
+    /**
+     * 容器关闭监听器
+     **/
+    private final CopyOnWriteArraySet<ApplicationCloseListener> closeListeners = new CopyOnWriteArraySet<>();
 
     public void addBeanFactoryPostProcessor(BeanFactoryPostProcessor processor) {
         this.beanFactoryPostProcessors.add(processor);
     }
 
-    /** 刷新容器 **/
+    public void addApplicationCloseListener(ApplicationCloseListener listener) {
+        this.closeListeners.add(listener);
+    }
+
+    /**
+     * 刷新容器
+     **/
     private void refreshBeanFactory() {
         if (hasBeanFactory()) {
             destroyBeans();
@@ -60,6 +81,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
     /**
      * 向容器注册BeanPostProcessor组件
+     *
      * @param beanFactory 容器
      */
     private void registerBeanPostProcessors(ConfigurableBeanFactory beanFactory) {
@@ -67,30 +89,70 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         beans.values().forEach(beanFactory::addBeanPostProcessor);
     }
 
+    private void registerApplicationCloseListener(ConfigurableBeanFactory beanFactory) {
+        Map<String, ApplicationCloseListener> beans = beanFactory.getBeansByType(ApplicationCloseListener.class);
+        beans.values().forEach(this::addApplicationCloseListener);
+    }
+
     private void destroyBeans() {
         getBeanFactory().destroy();
     }
 
 
-    /** 关闭容器 **/
+    /**
+     * 关闭容器
+     **/
     protected abstract void closeBeanFactory();
 
-    /** 留给子类去创建容器 **/
+    /**
+     * 留给子类去创建容器
+     **/
     protected abstract ConfigurableBeanFactory createBeanFactory();
 
-    /** 读取BeanDefinitions,并注册到beanFactory容器里 **/
+    /**
+     * 读取BeanDefinitions,并注册到beanFactory容器里
+     **/
     protected abstract void loadBeanDefinitions();
 
     // -------------------------------------------------------------------------------------
 
 
     @Override
+    public void registerShutdownHook() {
+        if (this.shutdownHook == null) {
+            // No shutdown hook registered yet.
+            this.shutdownHook = new Thread("SpringContextShutdownHook") {
+                @Override
+                public void run() {
+                    synchronized (startupShutdownMonitor) {
+                        close();
+                    }
+                }
+            };
+            Runtime.getRuntime().addShutdownHook(this.shutdownHook);
+        }
+    }
+
+    @Override
     public void close() {
-        destroyBeans();
+        synchronized (this.startupShutdownMonitor) {
+            doClose();
+            // If we registered a JVM shutdown hook, we don't need it anymore now:
+            // We've already explicitly closed the context.
+            if (this.shutdownHook != null) {
+                try {
+                    Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
+                } catch (IllegalStateException ex) {
+                    // ignore - VM is already shutting down
+                }
+            }
+        }
     }
 
     @Override
     public void refresh() {
+        registerShutdownHook();
+
         refreshBeanFactory();
 
         ConfigurableBeanFactory beanFactory = getBeanFactory();
@@ -102,8 +164,19 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         // Register bean processors that intercept bean creation.
         registerBeanPostProcessors(beanFactory);
 
+        // Register ApplicationCloseListener bean
+        registerApplicationCloseListener(beanFactory);
+
         // 初始化非懒加载bean
         beanFactory.preInstantiateSingletons();
+    }
+
+
+    private void doClose() {
+        List<ApplicationCloseListener> list = new ArrayList<>(closeListeners);
+        list.sort(Comparator.comparingInt(ApplicationCloseListener::getOrder));
+        list.forEach(ApplicationCloseListener::applicationClose);
+        destroyBeans();
     }
 
 

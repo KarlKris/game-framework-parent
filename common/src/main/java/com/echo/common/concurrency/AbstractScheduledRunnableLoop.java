@@ -147,6 +147,23 @@ public abstract class AbstractScheduledRunnableLoop extends AbstractRunnableLoop
     }
 
 
+    protected void cancelScheduledTasks() {
+        assert inRunnableLoop();
+        DynamicsPriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
+        if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
+            return;
+        }
+
+        final ScheduledFutureTask<?>[] scheduledTasks =
+                scheduledTaskQueue.toArray(new ScheduledFutureTask<?>[0]);
+
+        for (ScheduledFutureTask<?> task : scheduledTasks) {
+            task.cancelWithoutRemove(false);
+        }
+
+        scheduledTaskQueue.clearIgnoringIndexes();
+    }
+
     static long deadlineToDelayNanos(long deadlineNanos) {
         return deadlineNanos == 0L ? 0L : Math.max(0L, deadlineNanos - nanoTime());
     }
@@ -289,6 +306,10 @@ public abstract class AbstractScheduledRunnableLoop extends AbstractRunnableLoop
                 executor().removeScheduledTask(this);
             }
             return canceled;
+        }
+
+        boolean cancelWithoutRemove(boolean mayInterruptIfRunning) {
+            return super.cancel(mayInterruptIfRunning);
         }
 
         void runTask() {

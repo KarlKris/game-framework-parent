@@ -14,6 +14,14 @@ import lombok.Getter;
 public class NettyServerSettings {
 
     /**
+     * 服务器标识
+     */
+    private int serverId;
+    /**
+     * 服务器类型
+     */
+    private byte type;
+    /**
      * 端口号
      **/
     private int port;

@@ -8,9 +8,17 @@ import com.echo.network.serialize.SerializeType;
  *
  * @author: li-yuanwen
  */
-@ConfigurationProperties(prefix = "netty")
+@ConfigurationProperties(prefix = "netty.server")
 public class NettyProperties {
 
+    /**
+     * 服务器标识
+     */
+    private int id;
+    /**
+     * 服务器类型
+     */
+    private byte type;
     /**
      * 端口
      **/
@@ -34,33 +42,12 @@ public class NettyProperties {
      **/
     private String protocolPackage;
 
-    // ----------- ssl ----------------
-    /**
-     * sll协议
-     **/
-    private String sslProtocol;
-    /**
-     * ca证书地址
-     **/
-    private String sslCaPath;
 
     /**
-     * 服务端crt path
+     * ssl
      **/
-    private String sslServerCrtPath;
-    /**
-     * 服务端ssl 秘钥pkcs#8编码
-     **/
-    private String sslServerPkcs8keyPath;
+    private SslConfig ssl;
 
-    /**
-     * 客户端crt path
-     **/
-    private String sslClientCrtPath;
-    /**
-     * 客户端ssl 秘钥pkcs#8编码
-     **/
-    private String sslClientPkcs8keyPath;
 
     // --------------------------------------------------------------
 
@@ -97,52 +84,12 @@ public class NettyProperties {
         this.serializeType = serializeType;
     }
 
-    public String getSslProtocol() {
-        return sslProtocol;
+    public SslConfig getSsl() {
+        return ssl;
     }
 
-    public void setSslProtocol(String sslProtocol) {
-        this.sslProtocol = sslProtocol;
-    }
-
-    public String getSslCaPath() {
-        return sslCaPath;
-    }
-
-    public void setSslCaPath(String sslCaPath) {
-        this.sslCaPath = sslCaPath;
-    }
-
-    public String getSslServerCrtPath() {
-        return sslServerCrtPath;
-    }
-
-    public void setSslServerCrtPath(String sslServerCrtPath) {
-        this.sslServerCrtPath = sslServerCrtPath;
-    }
-
-    public String getSslServerPkcs8keyPath() {
-        return sslServerPkcs8keyPath;
-    }
-
-    public void setSslServerPkcs8keyPath(String sslServerPkcs8keyPath) {
-        this.sslServerPkcs8keyPath = sslServerPkcs8keyPath;
-    }
-
-    public String getSslClientCrtPath() {
-        return sslClientCrtPath;
-    }
-
-    public void setSslClientCrtPath(String sslClientCrtPath) {
-        this.sslClientCrtPath = sslClientCrtPath;
-    }
-
-    public String getSslClientPkcs8keyPath() {
-        return sslClientPkcs8keyPath;
-    }
-
-    public void setSslClientPkcs8keyPath(String sslClientPkcs8keyPath) {
-        this.sslClientPkcs8keyPath = sslClientPkcs8keyPath;
+    public void setSsl(SslConfig ssl) {
+        this.ssl = ssl;
     }
 
     public String getProtocolPackage() {
@@ -151,5 +98,100 @@ public class NettyProperties {
 
     public void setProtocolPackage(String protocolPackage) {
         this.protocolPackage = protocolPackage;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public byte getType() {
+        return type;
+    }
+
+    public void setType(byte type) {
+        this.type = type;
+    }
+
+    // ----------- ssl ----------------
+    public static final class SslConfig {
+
+        /**
+         * sll协议
+         **/
+        private String protocol;
+        /**
+         * ca证书地址
+         **/
+        private String caPath;
+
+        /**
+         * 服务端crt path
+         **/
+        private String serverCrtPath;
+        /**
+         * 服务端ssl 秘钥pkcs#8编码
+         **/
+        private String serverPkcs8keyPath;
+
+        /**
+         * 客户端crt path
+         **/
+        private String clientCrtPath;
+        /**
+         * 客户端ssl 秘钥pkcs#8编码
+         **/
+        private String clientPkcs8keyPath;
+
+        public String getProtocol() {
+            return protocol;
+        }
+
+        public void setProtocol(String protocol) {
+            this.protocol = protocol;
+        }
+
+        public String getCaPath() {
+            return caPath;
+        }
+
+        public void setCaPath(String caPath) {
+            this.caPath = caPath;
+        }
+
+        public String getServerCrtPath() {
+            return serverCrtPath;
+        }
+
+        public void setServerCrtPath(String serverCrtPath) {
+            this.serverCrtPath = serverCrtPath;
+        }
+
+        public String getServerPkcs8keyPath() {
+            return serverPkcs8keyPath;
+        }
+
+        public void setServerPkcs8keyPath(String serverPkcs8keyPath) {
+            this.serverPkcs8keyPath = serverPkcs8keyPath;
+        }
+
+        public String getClientCrtPath() {
+            return clientCrtPath;
+        }
+
+        public void setClientCrtPath(String clientCrtPath) {
+            this.clientCrtPath = clientCrtPath;
+        }
+
+        public String getClientPkcs8keyPath() {
+            return clientPkcs8keyPath;
+        }
+
+        public void setClientPkcs8keyPath(String clientPkcs8keyPath) {
+            this.clientPkcs8keyPath = clientPkcs8keyPath;
+        }
     }
 }

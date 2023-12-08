@@ -2,6 +2,7 @@ package com.echo.engine.boostrap;
 
 import com.echo.common.concurrency.IdentityRunnableLoopGroup;
 import com.echo.common.util.IpUtils;
+import com.echo.engine.client.Address;
 import com.echo.engine.config.NettyServerSettings;
 import com.echo.engine.handler.NettyServerChannelInitializer;
 import com.echo.engine.protocol.MessageFactory;
@@ -9,6 +10,7 @@ import com.echo.engine.rpc.core.GenericRemoteLocalServerSeekOperation;
 import com.echo.engine.rpc.core.InvocationContext;
 import com.echo.engine.rpc.core.RemoteServerSeekOperation;
 import com.echo.engine.rpc.push.PushOperation;
+import com.echo.engine.rpc.selector.ServerInfo;
 import com.echo.network.handler.HeartBeatHandler;
 import com.echo.network.handler.MessageDecoder;
 import com.echo.network.handler.MessageEncoder;
@@ -27,6 +29,9 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
+import java.net.SocketException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * netty server boostrap
@@ -125,7 +130,7 @@ public class NettyServerBootstrap {
         this.initializer = initializer;
     }
 
-    public void startServer() throws InterruptedException {
+    public void startServer() throws InterruptedException, SocketException {
         if (initializer == null) {
             throw new RuntimeException("not set NettyServerChannelInitializer");
         }
@@ -162,12 +167,27 @@ public class NettyServerBootstrap {
     }
 
     public void shutdown() {
+        if (channel == null) {
+            return;
+        }
         this.channel.close();
         this.boss.shutdownGracefully();
         this.workers.shutdownGracefully();
         this.clientEventLoopGroup.shutdownGracefully();
-        this.businessLoopGroup.shutdownGracefully();
-        log.warn("Netty 服务器[{}]正常关闭", settings.getPort());
+        Future<?> future = this.businessLoopGroup.shutdownGracefully();
+        try {
+            future.get();
+            log.warn("Netty 服务器[{}]正常关闭", settings.getPort());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public ServerInfo getLocalServerInfo() throws SocketException {
+        String ipAddress = IpUtils.getLocalIpAddress();
+        Address address = new Address(ipAddress, settings.getPort());
+        return new ServerInfo(settings.getServerId(), settings.getType(), address, 0);
     }
 
 

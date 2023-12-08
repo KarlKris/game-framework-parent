@@ -1,4 +1,4 @@
-package com.echo.mongo.mapping.anno;
+package com.echo.common.data;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

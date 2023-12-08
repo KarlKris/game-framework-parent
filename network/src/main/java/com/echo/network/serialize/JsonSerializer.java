@@ -1,7 +1,7 @@
 package com.echo.network.serialize;
 
+import com.echo.common.exception.SerializeFailException;
 import com.echo.common.util.JsonUtils;
-import com.echo.network.exception.SerializeFailException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 

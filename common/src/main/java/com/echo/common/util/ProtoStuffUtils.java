@@ -1,4 +1,4 @@
-package com.echo.network.utils;
+package com.echo.common.util;
 
 import cn.hutool.core.util.ClassUtil;
 import io.protostuff.LinkedBuffer;
@@ -29,7 +29,7 @@ public class ProtoStuffUtils {
     /**
      * 缓存Schema
      **/
-    private static Map<Class<?>, Schema<?>> schemaCache = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Schema<?>> schemaCache = new ConcurrentHashMap<>();
 
 
     /**

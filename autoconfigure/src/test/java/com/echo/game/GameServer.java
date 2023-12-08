@@ -10,6 +10,8 @@ import com.echo.engine.rpc.selector.ServerInfo;
 import com.echo.ioc.context.AnnotationGenericApplicationContext;
 import com.echo.network.message.InnerMessage;
 
+import java.net.SocketException;
+
 /**
  * 游戏服
  *
@@ -17,7 +19,7 @@ import com.echo.network.message.InnerMessage;
  */
 public class GameServer {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, SocketException {
         AnnotationGenericApplicationContext context = new AnnotationGenericApplicationContext("com.echo");
         context.refresh();
 

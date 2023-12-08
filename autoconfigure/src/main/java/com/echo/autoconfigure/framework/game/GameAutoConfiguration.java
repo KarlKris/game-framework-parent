@@ -1,9 +1,6 @@
 package com.echo.autoconfigure.framework.game;
 
-import com.echo.autoconfigure.framework.NettyProperties;
-import com.echo.autoconfigure.framework.NettyPropertiesSettingsBuilderCustomizer;
-import com.echo.autoconfigure.framework.ProtocolInvocationRegister;
-import com.echo.autoconfigure.framework.ProtocolScanner;
+import com.echo.autoconfigure.framework.*;
 import com.echo.engine.boostrap.NettyServerBootstrap;
 import com.echo.engine.config.NettyServerSettings;
 import com.echo.engine.handler.NettyServerChannelInitializer;
@@ -21,7 +18,7 @@ import javax.net.ssl.SSLException;
  * @author: li-yuanwen
  */
 @Configuration
-@ConditionalOnProperty(value = "netty.server.type", havingValue = "GAME")
+@ConditionalOnProperty(value = "netty.server.type", havingValue = "1")
 @EnableConfigurationProperties(NettyProperties.class)
 public class GameAutoConfiguration {
 
@@ -44,6 +41,11 @@ public class GameAutoConfiguration {
     @Bean
     public ProtocolInvocationRegister protocolInvocationRegister(NettyServerBootstrap bootstrap) {
         return new ProtocolInvocationRegister(bootstrap.getProtocolContext());
+    }
+
+    @Bean
+    public NettyShutdown nettyShutdown(NettyServerBootstrap bootstrap) {
+        return new NettyShutdown(bootstrap);
     }
 
     private GameBusinessHandler businessHandler(NettyServerBootstrap bootstrap) {

@@ -65,6 +65,11 @@ public class DefaultDynamicsPriorityQueue<T extends PriorityQueueNode> extends A
     }
 
     @Override
+    public void clearIgnoringIndexes() {
+        size = 0;
+    }
+
+    @Override
     public Iterator<T> iterator() {
         return new PriorityQueueIterator();
     }

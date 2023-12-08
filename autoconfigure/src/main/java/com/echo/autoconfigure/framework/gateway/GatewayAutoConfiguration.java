@@ -1,9 +1,6 @@
 package com.echo.autoconfigure.framework.gateway;
 
-import com.echo.autoconfigure.framework.NettyProperties;
-import com.echo.autoconfigure.framework.NettyPropertiesSettingsBuilderCustomizer;
-import com.echo.autoconfigure.framework.ProtocolInvocationRegister;
-import com.echo.autoconfigure.framework.ProtocolScanner;
+import com.echo.autoconfigure.framework.*;
 import com.echo.engine.boostrap.NettyServerBootstrap;
 import com.echo.engine.config.NettyServerSettings;
 import com.echo.engine.handler.NettyServerChannelInitializer;
@@ -21,7 +18,7 @@ import javax.net.ssl.SSLException;
  * @author: li-yuanwen
  */
 @Configuration
-@ConditionalOnProperty(value = "netty.server.type", havingValue = "GATEWAY")
+@ConditionalOnProperty(value = "netty.server.type", havingValue = "2")
 @EnableConfigurationProperties(NettyProperties.class)
 public class GatewayAutoConfiguration {
 
@@ -45,6 +42,11 @@ public class GatewayAutoConfiguration {
     @Bean
     public ProtocolInvocationRegister protocolInvocationRegister(NettyServerBootstrap bootstrap) {
         return new ProtocolInvocationRegister(bootstrap.getProtocolContext());
+    }
+
+    @Bean
+    public NettyShutdown nettyShutdown(NettyServerBootstrap bootstrap) {
+        return new NettyShutdown(bootstrap);
     }
 
     private GatewayBusinessHandler businessHandler(NettyServerBootstrap bootstrap) {

@@ -57,6 +57,22 @@ public class MongoTests {
         System.out.println(list.size());
     }
 
+    @Test
+    public void findOneTest() {
+        MongoTemplate mongoTemplate = prepare();
+        Criteria criteria = Criteria.where("_id").gt(15);
+        Query query = new Query(criteria);
+        Apple apple = mongoTemplate.findOne(query, Apple.class);
+        System.out.println(apple.getAddress().getName());
+    }
+
+    @Test
+    public void findByIdTest() {
+        MongoTemplate mongoTemplate = prepare();
+        Apple apple = mongoTemplate.findById(17, Apple.class);
+        System.out.println(apple.getAddress().getName());
+    }
+
 
     @Test
     public void insertTest() {
@@ -93,7 +109,7 @@ public class MongoTests {
     public void removeTest() {
         MongoTemplate mongoTemplate = prepare();
 
-        Criteria criteria = Criteria.where("_id").lte(1);
+        Criteria criteria = Criteria.where("_id").is(15);
         Query query = new Query(criteria);
         DeleteResult result = mongoTemplate.remove(query, Apple.class);
         System.out.println(result.getDeletedCount());

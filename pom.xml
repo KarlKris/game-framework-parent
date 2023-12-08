@@ -16,6 +16,8 @@
         <module>autoconfigure</module>
         <module>data-mongo</module>
         <module>engine</module>
+        <module>ramcache</module>
+        <module>data-redis</module>
         <!--        <module>hotswap-agent</module>-->
     </modules>
 
@@ -84,7 +86,7 @@
             <dependency>
                 <groupId>org.javassist</groupId>
                 <artifactId>javassist</artifactId>
-                <version>3.21.0-GA</version>
+                <version>3.27.0-GA</version>
             </dependency>
 
             <dependency>
@@ -127,8 +129,15 @@
             </dependency>
             <dependency>
                 <groupId>com.echo</groupId>
+                <artifactId>ramcache</artifactId>
+                <version>${game.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.echo</groupId>
                 <artifactId>hotswap-agent</artifactId>
                 <version>${game.version}</version>
+                <scope>compile</scope>
             </dependency>
 
         </dependencies>

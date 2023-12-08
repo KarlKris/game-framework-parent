@@ -304,7 +304,8 @@ public class SingleThreadRunnableLoop extends AbstractScheduledRunnableLoop {
 
                     int numTasks = drainTasks();
                     if (numTasks > 0) {
-                        log.warn("RunnableLoop线程终止后仍有{}个任务未完成", numTasks);
+                        log.warn("An event executor terminated with " +
+                                "non-empty task queue (" + numTasks + ')');
                     }
 
                     terminationFuture.complete(null);
@@ -400,6 +401,8 @@ public class SingleThreadRunnableLoop extends AbstractScheduledRunnableLoop {
             throw new IllegalStateException("confirmShutdown() must be invoked from an runnable loop");
         }
 
+        cancelScheduledTasks();
+
         if (gracefulShutdownStartTime == 0) {
             gracefulShutdownStartTime = nanoTime();
         }
@@ -432,6 +435,7 @@ public class SingleThreadRunnableLoop extends AbstractScheduledRunnableLoop {
 
         //  若线程处于ST_SHUTTING_DOWN状态等待时间未超过gracefulShutdownQuietPeriod时长则暂缓终止线程
         if (nanoTime - lastExecutionTime <= gracefulShutdownQuietPeriod) {
+            taskQueue.offer(WAKEUP_TASK);
             // 等待100ms
             try {
                 Thread.sleep(100);
@@ -457,7 +461,14 @@ public class SingleThreadRunnableLoop extends AbstractScheduledRunnableLoop {
             throw new IllegalStateException("runAllTasks() must be invoked from an runnable loop");
         }
 
-        boolean ranAtLeastOne = runAllTasksFrom(taskQueue);
+        boolean fetchedAll;
+        boolean ranAtLeastOne = false;
+        do {
+            fetchedAll = fetchFromScheduledTaskQueue();
+            if (runAllTasksFrom(taskQueue)) {
+                ranAtLeastOne = true;
+            }
+        } while (!fetchedAll);
 
         if (ranAtLeastOne) {
             lastExecutionTime = nanoTime();
@@ -473,16 +484,25 @@ public class SingleThreadRunnableLoop extends AbstractScheduledRunnableLoop {
      * @return true 至少执行了一个任务
      */
     private boolean runAllTasksFrom(Queue<Runnable> taskQueue) {
-        Runnable task = taskQueue.poll();
+        Runnable task = pollTaskFrom(taskQueue);
         if (task == null) {
             return false;
         }
 
         for (; ; ) {
             safeExecute(task);
-            task = taskQueue.poll();
+            task = pollTaskFrom(taskQueue);
             if (task == null) {
                 return true;
+            }
+        }
+    }
+
+    protected static Runnable pollTaskFrom(Queue<Runnable> taskQueue) {
+        for (; ; ) {
+            Runnable task = taskQueue.poll();
+            if (task != WAKEUP_TASK) {
+                return task;
             }
         }
     }

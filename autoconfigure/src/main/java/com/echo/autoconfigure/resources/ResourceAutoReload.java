@@ -133,7 +133,8 @@ public class ResourceAutoReload implements Runnable {
                     storage.validateSuccessfully();
                     log.error("更新成功,文件名是: {}", storage.getLocation());
                 }
-
+            } catch (InterruptedException e) {
+                // ignore
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             } finally {

@@ -9,14 +9,23 @@ import com.echo.ioc.core.ConfigurableBeanFactory;
 public interface ApplicationContext extends BeanFactory {
 
 
-    /** 获取真正的容器 **/
+    /**
+     * 获取真正的容器
+     **/
     ConfigurableBeanFactory getBeanFactory();
 
 
-    /** 刷新容器,开始注册实例 **/
+    /**
+     * 刷新容器,开始注册实例
+     **/
     void refresh();
 
-    /** 容器关闭 **/
+    /**
+     * 容器关闭
+     **/
     void close();
+
+
+    void registerShutdownHook();
 
 }

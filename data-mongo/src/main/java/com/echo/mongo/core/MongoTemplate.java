@@ -78,6 +78,10 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
         return doGetDatabase();
     }
 
+    public EntityOperations getEntityOperations() {
+        return entityOperations;
+    }
+
     public void setReadPreference(ReadPreference readPreference) {
         this.readPreference = readPreference;
     }
@@ -178,6 +182,68 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
         return doFind(collectionName, query.getQueryObject(), query.getFieldsObject(), entityClass);
     }
 
+    @Override
+    public <T> T findOne(Query query, Class<T> entityClass) {
+        return findOne(query, entityClass, getCollectionName(entityClass));
+    }
+
+    @Override
+    public <T> T findOne(Query query, Class<T> entityClass, String collectionName) {
+
+        if (query == null) {
+            throw new IllegalArgumentException("Query must not be null");
+        }
+        if (entityClass == null) {
+            throw new IllegalArgumentException("EntityClass must not be null");
+        }
+        if (collectionName == null) {
+            throw new IllegalArgumentException("CollectionName must not be null");
+        }
+
+        return doFindOne(collectionName, query.getQueryObject(), query.getFieldsObject(),
+                new QueryCursorPreparer(query, entityClass), entityClass);
+    }
+
+    @Override
+    public <T> T findById(Object id, Class<T> entityClass) {
+        return findById(id, entityClass, getCollectionName(entityClass));
+    }
+
+    @Override
+    public <T> T findById(Object id, Class<T> entityClass, String collectionName) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
+        if (entityClass == null) {
+            throw new IllegalArgumentException("EntityClass must not be null");
+        }
+        if (collectionName == null) {
+            throw new IllegalArgumentException("CollectionName must not be null");
+        }
+
+        return doFindOne(collectionName, new Document("_id", id), new Document(), CursorPreparer.NO_OP_PREPARER,
+                entityClass);
+    }
+
+
+    protected <T> T doFindOne(String collectionName,
+                              Document query, Document fields, CursorPreparer preparer, Class<T> entityClass) {
+
+        MongoPersistentEntity entity = entityOperations.getPersistentEntity(entityClass);
+
+        QueryOperations.QueryContext queryContext = queryOperations.createQueryContext(new BasicQuery(query, fields));
+        Document mappedFields = queryContext.getMappedFields(entity);
+        Document mappedQuery = queryContext.getMappedQuery(entity);
+
+        if (log.isDebugEnabled()) {
+            log.debug(String.format("findOne using query: %s fields: %s for class: %s in collection: %s",
+                    toJsonSafely(query), mappedFields, entityClass, collectionName));
+        }
+
+        return executeFindOneInternal(new FindOneCallback(mappedQuery, mappedFields, preparer),
+                new ReadDocumentCallback<>(this.mongoConverter, entityClass, collectionName), collectionName);
+    }
+
     private <T> List<T> doFind(String collectionName, Document query, Document fields, Class<T> entityClass) {
         MongoPersistentEntity persistentEntity = entityOperations.getPersistentEntity(entityClass);
 
@@ -207,6 +273,12 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
             }
             return result;
         }
+    }
+
+    private <T> T executeFindOneInternal(CollectionCallback<Document> collectionCallback,
+                                         DocumentCallback<T> documentCallback, String collectionName) {
+        Document document = collectionCallback.doInCollection(getAndPrepareCollection(doGetDatabase(), collectionName));
+        return document != null ? documentCallback.doWith(document) : null;
     }
 
     protected MongoDatabase doGetDatabase() {
@@ -277,6 +349,29 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
                 throws MongoException, DataAccessException {
             return collection.find(query, Document.class)
                     .projection(fields);
+        }
+    }
+
+    private static class FindOneCallback implements CollectionCallback<Document> {
+
+        private final Document query;
+        private final Document fields;
+
+        private final CursorPreparer cursorPreparer;
+
+        public FindOneCallback(Document query, Document fields, CursorPreparer cursorPreparer) {
+            this.query = query;
+            this.fields = fields;
+            this.cursorPreparer = cursorPreparer;
+        }
+
+        @Override
+        public Document doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
+            FindIterable<Document> iterable = cursorPreparer.prepare(collection.find(query, Document.class));
+            if (fields != null) {
+                iterable.projection(fields);
+            }
+            return iterable.first();
         }
     }
 
@@ -757,7 +852,8 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
 
     // ---------------------------------------------------------------------------------
 
-    class QueryCursorPreparer {
+
+    class QueryCursorPreparer implements CursorPreparer {
 
         private final Query query;
 
@@ -780,6 +876,7 @@ public class MongoTemplate implements MongoOperations, IndexOperationsProvider {
             this.type = type;
         }
 
+        @Override
         public FindIterable<Document> prepare(FindIterable<Document> iterable) {
 
             FindIterable<Document> cursorToUse = iterable;

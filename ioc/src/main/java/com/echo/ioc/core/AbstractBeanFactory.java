@@ -4,6 +4,8 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.ArrayUtil;
+import com.echo.common.util.ClassUtils;
+import com.echo.common.util.ObjectUtils;
 import com.echo.common.util.ReflectionUtils;
 import com.echo.common.util.StringUtils;
 import com.echo.ioc.anno.Autowired;
@@ -357,14 +359,32 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
         String prefixName = beanDefinition.getPropertyPrefixName();
         // 注入field
         for (Field field : beanDefinition.getFields()) {
+            populatePropertiesField(instance, field, prefixName);
+        }
+    }
+
+    private void populatePropertiesField(Object instance, Field field, String prefixName) throws IllegalAccessException {
+        Class<?> type = field.getType();
+        Object value = null;
+        if (ClassUtils.isSimpleTypeOrArray(type)) {
             String name = field.getName();
             String propertyName = prefixName + "." + name;
-            Object value = propertyResolver.getProperty(propertyName, field.getType());
-            if (value == null) {
-                continue;
-            }
-            ReflectionUtils.makeAccessible(field);
-            field.set(instance, value);
+            value = propertyResolver.getProperty(propertyName, field.getType());
+        } else {
+            prefixName = prefixName + "." + field.getName();
+            value = ObjectUtils.newInstance(type);
+            populatePropertiesFieldInstance(value, prefixName);
+        }
+        if (value == null) {
+            return;
+        }
+        ReflectionUtils.makeAccessible(field);
+        field.set(instance, value);
+    }
+
+    private void populatePropertiesFieldInstance(Object instance, String prefixName) throws IllegalAccessException {
+        for (Field field : ReflectionUtils.getFields(instance.getClass())) {
+            populatePropertiesField(instance, field, prefixName);
         }
     }
 

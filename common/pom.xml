@@ -13,6 +13,7 @@
 
     <properties>
         <hutool.version>5.8.20</hutool.version>
+        <protostuff.version>1.8.0</protostuff.version>
     </properties>
 
     <dependencies>
@@ -54,6 +55,30 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-dfa</artifactId>
             <version>${hutool.version}</version>
+        </dependency>
+
+        <!-- protobuf -->
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-core</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-runtime</artifactId>
+            <version>${protostuff.version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.moovel.proto/protostuff-runtime-proto -->
+        <dependency>
+            <groupId>com.moovel.proto</groupId>
+            <artifactId>protostuff-runtime-proto</artifactId>
+            <version>0.0.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-jexl3</artifactId>
+            <version>3.2.1</version>
         </dependency>
 
         <!-- excel,xml表读取框架 -->

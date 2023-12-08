@@ -1,7 +1,7 @@
 package com.echo.network.serialize;
 
-import com.echo.network.exception.SerializeFailException;
-import com.echo.network.utils.ProtoStuffUtils;
+import com.echo.common.exception.SerializeFailException;
+import com.echo.common.util.ProtoStuffUtils;
 import lombok.extern.slf4j.Slf4j;
 
 /**

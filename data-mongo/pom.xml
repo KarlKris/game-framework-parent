@@ -10,8 +10,8 @@
     <artifactId>data-mongo</artifactId>
     <packaging>jar</packaging>
 
-    <name>游戏框架之mongodb</name>
-    <url>http://maven.apache.org</url>
+    <name>data-mongodb</name>
+    <description>游戏框架之mongodb</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

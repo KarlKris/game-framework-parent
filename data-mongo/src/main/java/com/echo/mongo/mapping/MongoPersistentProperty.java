@@ -2,10 +2,10 @@ package com.echo.mongo.mapping;
 
 
 import com.echo.common.convert.core.TypeDescriptor;
+import com.echo.common.data.Transient;
 import com.echo.common.util.StringUtils;
 import com.echo.common.util.TypeDescriptorUtils;
 import com.echo.mongo.mapping.anno.Id;
-import com.echo.mongo.mapping.anno.Transient;
 import org.bson.types.ObjectId;
 
 import java.lang.annotation.Annotation;

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<aspectj>
+    <aspects>
+        <aspect name="com.echo.ramcache.core.RamCacheAspect"/>
+        <weaver options="-verbose -showWeaveInfo">
+            <include within="com.echo.*"/>
+        </weaver>
+    </aspects>
+</aspectj>

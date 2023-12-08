@@ -19,4 +19,9 @@ public interface DynamicsPriorityQueue<T> extends Queue<T> {
      */
     void priorityChanged(T node);
 
+    /**
+     * 删除所有元素,但是不会调用{@link PriorityQueueNode#priorityQueueIndex(DefaultDynamicsPriorityQueue)}或删除引用
+     * 只有当确定节点不会被重新插入到该优先级队列或任何其他优先级队列中，并且已知优先级队列本身在该调用后将被垃圾收集时，才应使用此方法。
+     */
+    void clearIgnoringIndexes();
 }

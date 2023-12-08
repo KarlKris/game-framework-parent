@@ -37,7 +37,7 @@ public class DefaultRunnableLoopChooserFactory implements RunnableLoopChooserFac
 
         @Override
         public RunnableLoop next() {
-            return loops[idx.getAndIncrement() & loops.length];
+            return loops[idx.getAndIncrement() & loops.length - 1];
         }
     }
 
